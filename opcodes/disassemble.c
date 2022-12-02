@@ -96,6 +96,7 @@
 #define ARCH_v850
 #define ARCH_vax
 #define ARCH_visium
+#define ARCH_vsdsp
 #define ARCH_wasm32
 #define ARCH_xstormy16
 #define ARCH_xgate
@@ -516,6 +517,11 @@ disassembler (enum bfd_architecture a,
      case bfd_arch_visium:
        disassemble = print_insn_visium;
        break;
+#endif
+#ifdef ARCH_vsdsp
+    case bfd_arch_vsdsp:
+      disassemble = print_insn_vsdsp;
+      break;
 #endif
 #ifdef ARCH_frv
     case bfd_arch_frv:

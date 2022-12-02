@@ -257,6 +257,8 @@ TARGET32_LIBOPCODES_CFILES = \
 	vax-dis.c \
 	visium-dis.c \
 	visium-opc.c \
+	vsdsp-dis.c \
+	vsdsp-opc.c \
 	wasm32-dis.c \
 	xstormy16-asm.c \
 	xstormy16-desc.c \

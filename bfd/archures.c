@@ -563,6 +563,8 @@ DESCRIPTION
 .#define bfd_mach_amdgcn_gfx1030 0x036
 .#define bfd_mach_amdgcn_gfx1031 0x037
 .#define bfd_mach_amdgcn_gfx1032 0x038
+. bfd_arch_vsdsp,		{* VS_DSP Processor *}
+.#define bfd_mach_vsdsp		1
 .  bfd_arch_last
 .  };
 */
@@ -692,6 +694,7 @@ extern const bfd_arch_info_type bfd_v850_arch;
 extern const bfd_arch_info_type bfd_v850_rh850_arch;
 extern const bfd_arch_info_type bfd_vax_arch;
 extern const bfd_arch_info_type bfd_visium_arch;
+extern const bfd_arch_info_type bfd_vsdsp_arch;
 extern const bfd_arch_info_type bfd_wasm32_arch;
 extern const bfd_arch_info_type bfd_xstormy16_arch;
 extern const bfd_arch_info_type bfd_xtensa_arch;
@@ -778,6 +781,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_v850_rh850_arch,
     &bfd_vax_arch,
     &bfd_visium_arch,
+    &bfd_vsdsp_arch,
     &bfd_wasm32_arch,
     &bfd_xstormy16_arch,
     &bfd_xtensa_arch,

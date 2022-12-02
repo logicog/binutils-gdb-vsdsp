@@ -1325,6 +1325,10 @@ case "${target}" in
   vax-*-*)
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
+  vsdsp-*-*)
+    noconfigdirs="$noconfigdirs ${libgcj} gdb sim"
+    noconfigdirs="$noconfigdirs ${libgcj} binutils gas ld gprof"
+    ;;
   wasm32-*-*)
     noconfigdirs="$noconfigdirs ld"
     ;;

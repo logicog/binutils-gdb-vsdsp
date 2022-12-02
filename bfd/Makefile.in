@@ -624,6 +624,7 @@ ALL_MACHINES = \
 	cpu-v850.lo \
 	cpu-v850_rh850.lo \
 	cpu-vax.lo \
+	cpu-vsdsp.lo \
 	cpu-visium.lo \
 	cpu-wasm32.lo \
 	cpu-xgate.lo \
@@ -707,6 +708,7 @@ ALL_MACHINES_CFILES = \
 	cpu-v850.c \
 	cpu-v850_rh850.c \
 	cpu-vax.c \
+	cpu-vsdsp.c \
 	cpu-visium.c \
 	cpu-wasm32.c \
 	cpu-xgate.c \
@@ -805,6 +807,7 @@ BFD32_BACKENDS = \
 	elf32-tilepro.lo \
 	elf32-v850.lo \
 	elf32-vax.lo \
+	elf32-vsdsp.lo \
 	elf32-visium.lo \
 	elf32-wasm32.lo \
 	elf32-xgate.lo \
@@ -941,6 +944,7 @@ BFD32_BACKENDS_CFILES = \
 	elf32-v850.c \
 	elf32-vax.c \
 	elf32-visium.c \
+	elf32-vsdsp.c \
 	elf32-wasm32.c \
 	elf32-xgate.c \
 	elf32-xstormy16.c \
@@ -1531,6 +1535,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-v850_rh850.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-vax.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-visium.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-vsdsp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-wasm32.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-xgate.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-xstormy16.Plo@am__quote@
@@ -1614,6 +1619,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-v850.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-vax.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-visium.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-vsdsp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-wasm32.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-xgate.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-xstormy16.Plo@am__quote@

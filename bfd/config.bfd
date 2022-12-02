@@ -1427,6 +1427,10 @@ case "${targ}" in
     targ_defvec=vax_elf32_vec
     ;;
 
+  vsdsp-*-elf)
+    targ_defvec=vsdsp_elf32_vec
+    ;;
+
   visium-*-elf)
     targ_defvec=visium_elf32_vec
     ;;

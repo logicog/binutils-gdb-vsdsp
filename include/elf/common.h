@@ -424,6 +424,8 @@
 /* old S/390 backend magic number. Written in the absence of an ABI.  */
 #define EM_S390_OLD		0xa390
 
+#define EM_VSDSP		0x8992
+
 /* Old, unofficial value for Xtensa.  */
 #define EM_XTENSA_OLD		0xabc7
 
