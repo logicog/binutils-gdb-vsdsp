@@ -536,7 +536,7 @@ md_assemble (char *str)
 
   str = skip_space (str);
   insn_continued = false;
-  if (*str == '\\')
+  if (*str == '&')
     {
       insn_continued = true;
       str++;
@@ -547,12 +547,11 @@ md_assemble (char *str)
   printf("%s final iword %08x\n", __func__, iword);
   if (!insn_continued)
     {
-      printf("%s: One more FRAG\n", __func__);
       output = frag_more (4);
-      printf("%s storing %08x\n", __func__, iword);
+      printf("%s storing %08x in new FRAG\n", __func__, iword);
       md_number_to_chars (output, iword, 4);
     }
-  if (need_fix)
+  if (false)  // need_fix
     {
       printf("%s NEED FIX output %016lx literal: %016lx\n", __func__, (intptr_t)output, (intptr_t)frag_now->fr_literal);
 	     fix_new_exp (frag_now,
