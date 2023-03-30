@@ -37,10 +37,12 @@ const char FLT_CHARS[] = "rRsSfFdDxXeE";
 
 static int pending_reloc;
 static char *last_output;
+uint32_t iword;
 static unsigned char last_flags;
 static htab_t opcode_hash_control;
 static htab_t treg_hash_control;
 static htab_t cc_hash_control;
+static bool insn_continued = false;
 
 static char *
 parse_exp  (char *s, expressionS *op)
@@ -242,7 +244,7 @@ read_move_op(char **s, struct move_op *op)
 }
 
 static int
-code_moves(vsdsp_opc_info_t *opcode, char **s, uint32_t *iword)
+code_moves(vsdsp_opc_info_t *opcode, char **s)
 {
   char *str = *s;
   int reg, reg2;
@@ -284,39 +286,43 @@ code_moves(vsdsp_opc_info_t *opcode, char **s, uint32_t *iword)
       abort();
   }
 
-    /* Verify if the full move fulfills the conditions for a short move */
+  *s = str;
+
+  /* Verify if the full move fulfills the conditions for a short move */
   if (f_move && ! (f_move & (0x3f << 3)))
     s_move = ((f_move & (0x1f << 9)) << 3) | (f_move & 0x7);
   else
     s_move = S_MOVE_INV;
 
   printf("%s In move, last_flags: %x\n", __func__, last_flags);
-  if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE)
+  if (!insn_continued)
     {
-      printf("%s testing parallel move last_output %08x f_move %04x p_move %08x s_move %04x\n",
-	      __func__, *iword, f_move, p_move, s_move);
-      *iword &= 0xfffe0000;
-      *iword |= opcode->opcode << 10 |  m_op.addr_reg << 6 | reg;
-    }
-  else if (! (last_flags & OP_ALLOWS_PMOVE))
-    {
-      printf("%s starting standalone move f_move %04x p_move %08x s_move %04x\n", __func__, f_move, p_move, s_move);
+      printf("%s STARTING standalone move f_move %04x p_move %08x s_move %04x\n", __func__, f_move, p_move, s_move);
       if (opcode->name[0] == 'm')
 	{
 	  /* encode the first move as a parallel move to a NOP */
-	    *iword = 0xf4 << 24 | (1 << 14) | p_move;
+	  iword = 0xf4 << 24 | (1 << 14) | p_move;
 	  /* second move uses second slot in a double reg-reg move
-	    *iword = 0x2b << 24 | p_move << 12 | */
+	    iword = 0x2b << 24 | p_move << 12 | */
 	}
       else
 	{
 	  if (opcode->name[2] == 'x')
-	    *iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | f_move << 14 | FULL_YMOVE_NOP;
+	    iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | f_move << 14 | FULL_YMOVE_NOP;
 	  else
-	    *iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | FULL_XMOVE_NOP | (f_move << 14);
+	    iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | FULL_XMOVE_NOP | (f_move << 14);
 	}
+	return 0;
     }
-  *s = str;
+
+  if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE)
+    {
+      printf("%s testing parallel move last_output %08x f_move %04x p_move %08x s_move %04x\n",
+	      __func__, iword, f_move, p_move, s_move);
+      iword &= 0xfffe0000;
+      iword |= opcode->opcode << 10 |  m_op.addr_reg << 6 | reg;
+    }
+
   return 0;
 }
 
@@ -332,202 +338,220 @@ md_assemble (char *str)
 
   vsdsp_opc_info_t *opcode;
   char *output = 0;
-  uint32_t iword = 0;
   int reg, reg2, A;
   char pend;
   bool need_fix = false;
   expressionS exp;
   struct target_cc_entry *condition;
   char cc_code;
-  bool	line_continued = false;
+  int nlen = 0;
 
-  do
+  /* Initialize the expression.  */
+  exp.X_op = O_absent;
+
+  /* Clear the current instruction word if this is not a parallel instruction
+     and verify we actually have a parallel slot to use */ 
+  if (!insn_continued)
     {
-      /* Initialize the expression.  */
-      exp.X_op = O_absent;
+      iword = 0;
+    }
+  else
+    {
+      if (!((last_flags & OP_ALLOWS_PMOVE) || (last_flags & OP_DOUBLE_MOVE)))
+        {
+	  as_bad (_("no slot for a parallel operation"));
+	  return;
+        }
+    }
 
-      int nlen = 0;
+  printf("line        >>>>>>%s<<<<<<<\n", str);
+  /* Drop leading whitespace.  */
+  str = skip_space (str);
 
-      /* Drop leading whitespace.  */
+  /* Find the op code end.  */
+  op_start = str;
+  for (op_end = str; !is_end_of_line[*op_end & 0xff] && *op_end != ' ';
+	op_end++)
+    nlen++;
+
+  pend = *op_end;
+  *op_end = 0;
+
+  printf("%s >>>>>>%s<<<<<<<\n", __func__, op_start);
+  if (nlen == 0)
+    as_bad (_("can't find opcode "));
+
+  opcode = (vsdsp_opc_info_t *) str_hash_find (opcode_hash_control, op_start);
+  *op_end = pend;
+
+  if (opcode == NULL)
+    {
+      as_bad (_("unknown opcode %s"), op_start);
+      return;
+    }
+
+  printf("USING opcode %x %s\n", opcode->opcode, opcode->name);
+
+  while (ISSPACE (*op_end))
+    op_end++;
+  str = op_end;
+
+  switch (opcode->itype)
+  {
+    case VSDSP_OP_LDC:		// ldc value, reg
+      str = parse_exp (str, &exp);
       str = skip_space (str);
-
-      /* Find the op code end.  */
-      op_start = str;
-      for (op_end = str; !is_end_of_line[*op_end & 0xff] && *op_end != ' ';
-	   op_end++)
-	nlen++;
-
-      pend = *op_end;
-      *op_end = 0;
-  
-      printf("%s >>>>>>%s<<<<<<<\n", __func__, op_start);
-      if (nlen == 0)
-	as_bad (_("can't find opcode "));
-
-      opcode = (vsdsp_opc_info_t *) str_hash_find (opcode_hash_control, op_start);
-      *op_end = pend;
-
-      if (opcode == NULL)
+      if (exp.X_op != O_absent && *str == ',')
 	{
-	  as_bad (_("unknown opcode %s"), op_start);
+	  int immediate = exp.X_add_number;
+
+	  str = skip_space (str + 1);
+	  reg = parse_target_reg (&str);
+	  if (reg < 0) {
+	    as_bad (_("not a valid target register "));
+	    return;
+	  }
+	  iword = opcode->opcode << 28 | (immediate & 0xffff) << 6 | reg;
+	  printf("%s: Got immediate %d, target register is %d\n", __func__, immediate, reg);
+	  need_fix = true;
+	}
+      break;
+
+    case VSDSP_OP_CONTROL:
+      printf("%s identified VSDSP_OP_CONTROL\n", __func__);
+      cc_code = 0;
+
+      switch (opcode->opcode)
+      {
+	case 0x20: // JRcc
+	  printf("%s identified JRcc\n", __func__);
+	  need_fix = false;
+	  op_start += 2;
+	  break;
+	case 0x21: // RETI
+	  need_fix = false;
+	  op_start += 4;
+	  break;
+	case 0x22: // JMPI
+	  need_fix = true;
+	  op_start += 4;
+	  break;
+	case 0x28: // Jcc
+	  need_fix = true;
+	  op_start += 1;
+	  break;
+	case 0x29: // CALLcc
+	  need_fix = true;
+	  op_start += 4;
+	  break;
+	case 0x2d: // HALT
+	  need_fix = false;
+	  op_start += 4;
+	  break;
+	default:
+	  as_bad (_("invalid control instruction "));
+	  return;
+      }
+      if (*op_start &&  ISALNUM (*op_start))
+	{
+	  pend = *(op_start + 2);
+	  *(op_start + 2) = '\0';
+	  condition = (struct target_cc_entry *) str_hash_find (cc_hash_control, op_start);
+	  *(op_start + 2) = pend;
+	  printf("%s identified CALL >%s<\n", __func__, op_start);
+	  if (!condition)
+	    {
+	      as_bad (_("invalid condition code "));
+	      return;
+	    }
+	  printf("%s identified CALL with condition %s\n", __func__, condition->name);
+	  cc_code = condition->code;
+	}
+      printf("%s need fix? %d %x\n", __func__, need_fix, opcode->opcode);
+      if (need_fix)
+	str = parse_exp (str, &exp);
+      str = skip_space (str);
+      iword = opcode->opcode << 24 | cc_code;
+      break;
+
+    case VSDSP_OP_ADD:
+    case VSDSP_OP_ADDC:
+    case VSDSP_OP_MAC:
+    case VSDSP_OP_SUB:
+    case VSDSP_OP_MSU:
+    case VSDSP_OP_SUBC:
+    case VSDSP_OP_ASLH:
+    case VSDSP_OP_AND:
+    case VSDSP_OP_OR:
+    case VSDSP_OP_XOR:
+      printf("%s str x >%s<\n", __func__, str);
+      reg = parse_alu_reg (&str);
+      str = skip_space (str + 1);
+      reg2 = parse_alu_reg (&str);
+      str = skip_space (str + 1);
+      A = parse_alu_reg (&str) & 0x7;
+      printf("%s: Got reg %d, reg2 %d, A: %d\n", __func__, reg, reg2, A);
+      iword = opcode->opcode << 28 | reg << 24 | reg2 << 20 | A << 17;
+      iword |= PARALLEL_MV_NOP;
+      break;
+
+    case VSDSP_OP_SINGLE:
+      // Is this a NOP?
+      if (opcode->opcode == 0xf4)
+	{
+	  // If this is a NOP in a parallel move slot, we don't need to do anything
+	  if (insn_continued)
+	    break;
+	  // Create a total NOP for now
+	  iword = TOTAL_NOP;
+	  // iword = 0xf4000000 | PARALLEL_MV_NOP;
+	  break;
+	}
+      reg2 = parse_alu_reg (&str);
+      str = skip_space (str + 1);
+      reg = parse_alu_reg (&str);
+      if (reg >= 8 )
+	{
+	  as_bad (_("not a valid target register "));
 	  return;
 	}
+      iword = opcode->opcode << 24 | reg2 << 20 | reg << 17;
+      printf("%s a iword %08x\n", __func__, iword);
+      if (opcode->flags & OP_ALLOWS_PMOVE)
+	iword |= PARALLEL_MV_NOP;
+      printf("%s b iword %08x\n", __func__, iword);
+      break;
 
-      printf("USING opcode %x %s\n", opcode->opcode, opcode->name);
+      /* mvx, mvy, stx/y/i, ldx/y/i which can stand alone, be paired in a
+	double move or just be a side-effect in a parallel move to an arithmetic operation */
+      case VSDSP_OP_MOVE:
+	printf("%s: In VSDSP_OP_MOVE, line continued: %d\n", __func__, insn_continued);
+	if (code_moves(opcode, &str))
+	  return;
+	break;
 
-      while (ISSPACE (*op_end))
-	op_end++;
-      str = op_end;
+    default:
+      printf("%s reserved\n", __func__);
+  }
 
-      switch (opcode->itype)
-      {
-	case VSDSP_OP_LDC:		// ldc value, reg
-	  str = parse_exp (str, &exp);
-	  str = skip_space (str);
-	  if (exp.X_op != O_absent && *str == ',')
-	    {
-	      int immediate = exp.X_add_number;
-
-	      str = skip_space (str + 1);
-	      reg = parse_target_reg (&str);
-	      if (reg < 0) {
-		as_bad (_("not a valid target register "));
-		return;
-	      }
-	      iword = opcode->opcode << 28 | (immediate & 0xffff) << 6 | reg;
-	      printf("%s: Got immediate %d, target register is %d\n", __func__, immediate, reg);
-	      need_fix = true;
-	    }
-	  break;
-
-	case VSDSP_OP_CONTROL:
-	  printf("%s identified VSDSP_OP_CONTROL\n", __func__);
-	  cc_code = 0;
-
-	  switch (opcode->opcode)
-	  {
-	    case 0x20: // JRcc
-	      printf("%s identified JRcc\n", __func__);
-	      need_fix = false;
-	      op_start += 2;
-	      break;
-	    case 0x21: // RETI
-	      need_fix = false;
-	      op_start += 4;
-	      break;
-	    case 0x22: // JMPI
-	      need_fix = true;
-	      op_start += 4;
-	      break;
-	    case 0x28: // Jcc
-	      need_fix = true;
-	      op_start += 1;
-	      break;
-	    case 0x29: // CALLcc
-	      need_fix = true;
-	      op_start += 4;
-	      break;
-	    case 0x2d: // HALT
-	      need_fix = false;
-	      op_start += 4;
-	      break;
-	    default:
-	      as_bad (_("invalid control instruction "));
-	      return;
-	  }
-	  if (*op_start &&  ISALNUM (*op_start))
-	    {
-	      pend = *(op_start + 2);
-	      *(op_start + 2) = '\0';
-	      condition = (struct target_cc_entry *) str_hash_find (cc_hash_control, op_start);
-	      *(op_start + 2) = pend;
-	      printf("%s identified CALL >%s<\n", __func__, op_start);
-	      if (!condition)
-		{
-		  as_bad (_("invalid condition code "));
-		  return;
-		}
-	      printf("%s identified CALL with condition %s\n", __func__, condition->name);
-	      cc_code = condition->code;
-	    }
-	  printf("%s need fix? %d %x\n", __func__, need_fix, opcode->opcode);
-	  if (need_fix)
-	    str = parse_exp (str, &exp);
-	  str = skip_space (str);
-	  iword = opcode->opcode << 24 | cc_code;
-	  break;
-
-	case VSDSP_OP_ADD:
-	case VSDSP_OP_ADDC:
-	case VSDSP_OP_MAC:
-	case VSDSP_OP_SUB:
-	case VSDSP_OP_MSU:
-	case VSDSP_OP_SUBC:
-	case VSDSP_OP_ASLH:
-	case VSDSP_OP_AND:
-	case VSDSP_OP_OR:
-	case VSDSP_OP_XOR:
-	  reg = parse_alu_reg (&str);
-	  str = skip_space (str + 1);
-	  reg2 = parse_alu_reg (&str);
-	  str = skip_space (str + 1);
-	  A = parse_alu_reg (&str) & 0x7;
-	  printf("%s: Got reg %d, reg2 %d, A: %d\n", __func__, reg, reg2, A);
-	  iword = opcode->opcode << 28 | reg << 24 | reg2 << 20 | A << 17;
-	  iword |= PARALLEL_MV_NOP;
-	  break;
-
-	case VSDSP_OP_SINGLE:
-	  // Is this a NOP?
-	  if (opcode->opcode == 0xf4)
-	    {
-	      // For now we fill the parallel move slot with another NOP
-	      iword = 0xf4000000 | PARALLEL_MV_NOP;
-	      break;
-	    }
-	  reg2 = parse_alu_reg (&str);
-	  str = skip_space (str + 1);
-	  reg = parse_alu_reg (&str);
-	  if (reg >= 8 )
-	    {
-	      as_bad (_("not a valid target register "));
-	      return;
-	    }
-	  iword = opcode->opcode << 24 | reg2 << 20 | reg << 17;
-	  printf("%s a iword %08x\n", __func__, iword);
-	  if (opcode->flags & OP_ALLOWS_PMOVE)
-	    iword |= PARALLEL_MV_NOP;
-	  printf("%s b iword %08x\n", __func__, iword);
-	  break;
-
-	  /* mvx, mvy, stx/y/i, ldx/y/i which can stand alone, be paired in a
-	    double move or just be a side-effect in a parallel move to an arithmetic operation */
-	  case VSDSP_OP_MOVE:
-	    printf("%s: In VSDSP_OP_MOVE, line continued: %d\n", __func__, line_continued);
-	    if (code_moves(opcode, &str, &iword))
-	      return;
-	    break;
-
-	default:
-	  printf("%s reserved\n", __func__);
-	}
-
-      if (*str == ';')
-	{
-	  line_continued = true;
-	  str = skip_space (str + 1);
-	  printf("%s line continues: >%s<\n", __func__, str);
-	}
-      last_flags = opcode->flags;
+  str = skip_space (str);
+  insn_continued = false;
+  if (*str == '\\')
+    {
+      insn_continued = true;
+      str++;
     }
-  while (*str && *str != '#');
+
+  last_flags = opcode->flags;
   
   printf("%s final iword %08x\n", __func__, iword);
-  printf("%s: One more FRAG\n", __func__);
-  output = frag_more (4);
-  printf("%s storing %08x\n", __func__, iword);
-  md_number_to_chars (output, iword, 4);
-
+  if (!insn_continued)
+    {
+      printf("%s: One more FRAG\n", __func__);
+      output = frag_more (4);
+      printf("%s storing %08x\n", __func__, iword);
+      md_number_to_chars (output, iword, 4);
+    }
   if (need_fix)
     {
       printf("%s NEED FIX output %016lx literal: %016lx\n", __func__, (intptr_t)output, (intptr_t)frag_now->fr_literal);

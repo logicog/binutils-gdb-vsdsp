@@ -74,6 +74,9 @@ struct target_reg_entry
    part of an instruction */
 #define PARALLEL_MV_NOP 0x24
 
+/* A total NOP, is an LDC to NOP */
+#define TOTAL_NOP 0x00000024
+
 /* Full move NOPs to fill up the second half of a double full
    move, the equivalent of ldx/y (i0), nop */
 #define FULL_XMOVE_NOP (0x24 << 14)

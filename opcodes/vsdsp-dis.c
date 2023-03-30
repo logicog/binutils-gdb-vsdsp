@@ -86,9 +86,9 @@ disassm_pmove_fully(uint32_t c)
 
   post_mod(p, buf);
   if (c & (1 << 13))
-    fpr(stream, " sty\t%s, (i%d)%s", target_regs[R].name, r, buf);
+    fpr(stream, "; sty %s, (i%d)%s", target_regs[R].name, r, buf);
   else
-    fpr(stream, " ldy\t(i%d)%s, %s", r, buf, target_regs[R].name);
+    fpr(stream, "; ldy (i%d)%s, %s", r, buf, target_regs[R].name);
 
   return 0;
 }
@@ -107,7 +107,7 @@ disassm_pmove_long(uint32_t c)
 
   if (! (op & 0xc))
     {
-      fpr(stream, "mvy\t%s, %s\n", target_regs[s].name, target_regs[d].name);
+      fpr(stream, "mvy %s, %s\n", target_regs[s].name, target_regs[d].name);
     } else {
       switch (op & 0x3)
 	{
@@ -140,6 +140,7 @@ disassm_pmove_short(uint32_t c)
   char buf[] = "\0\0";
   uint8_t R, p, r;
 
+  printf("%s called\n", __func__);
   if (!(c & (1 << 16)))
     {
       printf("%s  RESERVED\n", __func__);
@@ -163,9 +164,9 @@ disassm_pmove_short(uint32_t c)
 
   buf[0] = p ? '*' : '\0';
   if (c & (1 << 15))
-    fpr(stream, " sty %s, (i%d)%s", target_regs[R].name, r, buf);
+    fpr(stream, "; sty %s, (i%d)%s", target_regs[R].name, r, buf);
   else
-    fpr(stream, " ldy (i%d)%s, %s", r, buf, target_regs[R].name);
+    fpr(stream, "; ldy (i%d)%s, %s", r, buf, target_regs[R].name);
 
   return 0;
 }
@@ -493,7 +494,6 @@ print_insn_vsdsp (bfd_vma addr, struct disassemble_info *info)
 
   op_decode[iword >> 28] (iword);
 
-  printf("A2\n");
 //  fpr (stream, "%s", vsdsp_opc_info[opcode].name);
 
   return 4;
