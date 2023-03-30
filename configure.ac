@@ -1326,7 +1326,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   vsdsp-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj} gdb sim"
+    noconfigdirs="$noconfigdirs ${libgcj} gdb"
     noconfigdirs="$noconfigdirs ${libgcj} gprof"
     ;;
   wasm32-*-*)

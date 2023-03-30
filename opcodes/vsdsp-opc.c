@@ -79,7 +79,7 @@ const struct target_reg_entry target_regs[64] =
   
   { 0x08, "lr0" },
   { 0x09, "lr1" },
-  { 0x0a, "mro" },
+  { 0x0a, "mr0" },
   { 0x0b, "rsrvd" },
   { 0x0c, "null" },
   { 0x0d, "lc" }, 

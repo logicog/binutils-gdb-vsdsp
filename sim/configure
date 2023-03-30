@@ -734,6 +734,8 @@ SIM_ENABLE_ARCH_mn10300_TRUE
 CC_FOR_TARGET_MN10300
 LD_FOR_TARGET_MN10300
 AS_FOR_TARGET_MN10300
+SIM_ENABLE_ARCH_vsdsp_FALSE
+SIM_ENABLE_ARCH_vsdsp_TRUE
 SIM_ENABLE_ARCH_mips_FALSE
 SIM_ENABLE_ARCH_mips_TRUE
 CC_FOR_TARGET_MIPS
@@ -1117,6 +1119,8 @@ CC_FOR_TARGET_ERC32
 AS_FOR_TARGET_V850
 LD_FOR_TARGET_V850
 CC_FOR_TARGET_V850
+LD_FOR_TARGET_VSDSP
+CC_FOR_TARGET_VSDSP
 AS_FOR_TARGET_EXAMPLE_SYNACOR
 LD_FOR_TARGET_EXAMPLE_SYNACOR
 CC_FOR_TARGET_EXAMPLE_SYNACOR'
@@ -2004,6 +2008,12 @@ Some influential environment variables:
               Linker for v850 tests
   CC_FOR_TARGET_V850
               C compiler for v850 tests
+  AS_FOR_TARGET_VSDSP
+              Assembler for vsdsp tests
+  LD_FOR_TARGET_VSDSP
+              Linker for vsdsp tests
+  CC_FOR_TARGET_VSDSP
+              C compiler for vsdsp tests
   AS_FOR_TARGET_EXAMPLE_SYNACOR
               Assembler for example-synacor tests
   LD_FOR_TARGET_EXAMPLE_SYNACOR
@@ -15362,6 +15372,50 @@ else
 fi
 
 
+      sim_enable_arch_vsdsp=false
+  case "${targ}" in
+    all|vsdsp-*-*)
+      if test "${targ}" = "${target}"; then
+        SIM_PRIMARY_TARGET=vsdsp
+      fi
+        as_fn_append SIM_ENABLED_ARCHES " vsdsp"
+      ac_config_files="$ac_config_files vsdsp/Makefile.sim:vsdsp/Makefile.in"
+
+    ac_config_commands="$ac_config_commands vsdsp/Makefile"
+
+    as_fn_append SIM_SUBDIRS " vsdsp"
+
+  ac_config_files="$ac_config_files vsdsp/.gdbinit:common/gdbinit.in"
+
+    ac_config_commands="$ac_config_commands depdir-vsdsp"
+
+
+      sim_enable_arch_vsdsp=true
+
+      ;;
+  esac
+
+
+
+
+  if test "$SIM_PRIMARY_TARGET" = "vsdsp"; then :
+      : "${AS_FOR_TARGET_VSDSP:=\$(AS_FOR_TARGET)}"
+    : "${LD_FOR_TARGET_VSDSP:=\$(LD_FOR_TARGET)}"
+    : "${CC_FOR_TARGET_VSDSP:=\$(CC_FOR_TARGET)}"
+
+fi
+
+as_fn_append SIM_TOOLCHAIN_VARS " AS_FOR_TARGET_VSDSP LD_FOR_TARGET_VSDSP CC_FOR_TARGET_VSDSP"
+
+   if ${sim_enable_arch_vsdsp}; then
+  SIM_ENABLE_ARCH_vsdsp_TRUE=
+  SIM_ENABLE_ARCH_vsdsp_FALSE='#'
+else
+  SIM_ENABLE_ARCH_vsdsp_TRUE='#'
+  SIM_ENABLE_ARCH_vsdsp_FALSE=
+fi
+
+
   done
 
   if test "x${enable_example_sims}" = xyes; then
@@ -16513,6 +16567,10 @@ if test -z "${SIM_ENABLE_ARCH_v850_TRUE}" && test -z "${SIM_ENABLE_ARCH_v850_FAL
   as_fn_error $? "conditional \"SIM_ENABLE_ARCH_v850\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${SIM_ENABLE_ARCH_vsdsp_TRUE}" && test -z "${SIM_ENABLE_ARCH_vsdsp_FALSE}"; then
+  as_fn_error $? "conditional \"SIM_ENABLE_ARCH_vsdsp\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${SIM_ENABLE_ARCH_examples_TRUE}" && test -z "${SIM_ENABLE_ARCH_examples_FALSE}"; then
   as_fn_error $? "conditional \"SIM_ENABLE_ARCH_examples\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -17424,6 +17482,7 @@ do
     "sh/.gdbinit") CONFIG_FILES="$CONFIG_FILES sh/.gdbinit:common/gdbinit.in" ;;
     "erc32/.gdbinit") CONFIG_FILES="$CONFIG_FILES erc32/.gdbinit:common/gdbinit.in" ;;
     "v850/.gdbinit") CONFIG_FILES="$CONFIG_FILES v850/.gdbinit:common/gdbinit.in" ;;
+    "vsdsp/.gdbinit") CONFIG_FILES="$CONFIG_FILES vsdsp/.gdbinit:common/gdbinit.in" ;;
     "example-synacor/.gdbinit") CONFIG_FILES="$CONFIG_FILES example-synacor/.gdbinit:common/gdbinit.in" ;;
     "arch-subdir.mk") CONFIG_FILES="$CONFIG_FILES arch-subdir.mk" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
