@@ -139,11 +139,10 @@ disassm_pmove_long(uint32_t c, bool follows_op)
   s = (c >> 6) & 0x3f;
   d = c & 0x3f;
 
-  if (follows_op)
-    fpr(stream, " &; ");
-
   if (! (op & 0xc))
     {
+      if (follows_op)
+	fpr(stream, " &; ");
       fpr(stream, "mv %s, %s", target_regs[s].name, target_regs[d].name);
     } else {
       s = (c >> 9) & 1;
@@ -153,14 +152,21 @@ disassm_pmove_long(uint32_t c, bool follows_op)
 	case 0: // long-X move
 	  R = c & 0x3f;
 	  if (s)
-	    fpr(stream, "sty %s, (i%d)", target_regs[R].name, r);
-	  else if (R != 0x24 || full_ops)  // parallel load to NOP normally suppressed
-	    fpr(stream, "ldy (i%d), %s", r, target_regs[R].name);
+	    {
+	      fpr(stream, "sty %s, (i%d)", target_regs[R].name, r);
+	    }
+	  else if (R != 0x24 || full_ops)
+	    {
+	      if (follows_op)
+		fpr(stream, " &; ");
+	      fpr(stream, "ldy (i%d), %s", r, target_regs[R].name);
+	    }
 	  break;
 	case 1: // I-bus move
 	  p = (c >> 2) & 0xf;
 	  R = c & 3;
-//		printf("I bus move load/store %d r: %d, p: %d, R: %d\n", s, r, p, R);
+	  if (follows_op)
+	    fpr(stream, " &; ");
 	  post_mod(p, buf);
 	  if (!s)
 	    fpr(stream, "ldi (I%d) %s, %c\n", r, buf, 'A' + R);
@@ -223,7 +229,7 @@ static int
 };
 
 static int
-decode_pmove(uint32_t c, bool follows_op)
+decode_pmove (uint32_t c, bool follows_op)
 {
   uint8_t op;
 
@@ -234,16 +240,21 @@ decode_pmove(uint32_t c, bool follows_op)
 }
 
 static int
-disassm_ldc(uint32_t c)
+disassm_ldc (uint32_t c, struct disassemble_info *info)
 {
   uint8_t	op1 = c & 0x3f;
   uint16_t constant = (c >> 6) & 0xffff;
 
   // printf("in %s:\n", __func__);
   if (op1 == 0x24 && !full_ops)
-    fpr(stream, "nop");
-  else
-    fpr(stream, "ldc %x, %s", constant, target_regs[op1].name);
+    {
+      fpr(stream, "nop");
+      return 1;
+    }
+  fpr(stream, "ldc ");
+  (*info->print_address_func) (constant, info);
+  fpr(stream, ", %s", target_regs[op1].name);
+
   return 0;
 }
 
@@ -256,7 +267,7 @@ static char conditions[32][3] =
 };
 
 static int
-disassm_control(uint32_t c)
+disassm_control (uint32_t c, struct disassemble_info *info)
 {
   uint8_t m, r, op = (c >> 24) & 0xf, R, cond;
   uint32_t addr;
@@ -282,12 +293,14 @@ disassm_control(uint32_t c)
       addr = (c >> 6) & 0xffff;
       r = c & 0x7;
       m = c >> 3 & 0x3;
+      fpr(stream, "jmpi ");
+      (*info->print_address_func) (addr, info);
       if (m == 1)
-	fpr(stream, "jmpi %04x, (i%d) + %d", addr, r, m);
+	fpr(stream, ", (i%d) + %d", r, m);
       else if (m == 0)
-	fpr(stream, "jmpi %04x, (i%d)", addr, r);
+	fpr(stream, ", (i%d)", r);
       else
-	fpr(stream, "jmpi %04x, (i%d) - %d", addr, r, m);
+	fpr(stream, ", (i%d) - %d", r, m);
       break;
 
     case 0x9: // CALLcc
@@ -298,7 +311,8 @@ disassm_control(uint32_t c)
 	  break;
 	}
       addr = (c >> 6) & 0xffff;
-      fpr(stream, "call%s %x", conditions[cond], addr);
+      fpr(stream, "call%s ", conditions[cond]);
+      (*info->print_address_func) (addr, info);
       break;
 
     case 0x8: // Jcc
@@ -308,8 +322,9 @@ disassm_control(uint32_t c)
 	  printf ("J RESERVED");
 	  break;
 	}
-	addr = (c >> 6) & 0xffff;
-	fpr(stream, "j%s %x", conditions[cond], addr);
+      addr = (c >> 6) & 0xffff;
+      fpr(stream, "j%s ", conditions[cond]);
+      (*info->print_address_func) (addr, info);
       break;
 
     case 0x2: // RESP
@@ -337,7 +352,7 @@ disassm_control(uint32_t c)
 }
 
 static int
-disassm_dmove(uint32_t c)
+disassm_dmove (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   int count = disassm_pmove_fullx(c >> 14, false);
   count += disassm_pmove_fully(c, count);
@@ -349,7 +364,7 @@ disassm_dmove(uint32_t c)
 }
 
 static int
-two_op_arithmetic(char *op, uint32_t c)
+two_op_arithmetic (char *op, uint32_t c)
 {
   uint8_t r, R, A;
 
@@ -369,7 +384,7 @@ two_op_arithmetic(char *op, uint32_t c)
 }
 
 static int
-disassm_add(uint32_t c)
+disassm_add (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "add";
 
@@ -377,7 +392,7 @@ disassm_add(uint32_t c)
 }
 
 static int
-disassm_mac(uint32_t c)
+disassm_mac (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   printf("in %s with %08x\n", __func__, c);
   // TODO
@@ -386,7 +401,7 @@ disassm_mac(uint32_t c)
 }
 
 static int
-disassm_sub(uint32_t c)
+disassm_sub (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "sub";
 
@@ -394,7 +409,7 @@ disassm_sub(uint32_t c)
 }
 
 static int
-disassm_msu(uint32_t c)
+disassm_msu (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   printf("in %s with %08x\n", __func__, c);
   // TODO
@@ -402,7 +417,7 @@ disassm_msu(uint32_t c)
 }
 
 static int
-disassm_addc(uint32_t c)
+disassm_addc (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "addc";
 
@@ -410,7 +425,7 @@ disassm_addc(uint32_t c)
 }
 
 static int
-disassm_subc(uint32_t c)
+disassm_subc (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "subc";
 
@@ -418,7 +433,7 @@ disassm_subc(uint32_t c)
 }
 
 static int
-disassm_ashl(uint32_t c)
+disassm_ashl (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "ashl";
 
@@ -426,7 +441,7 @@ disassm_ashl(uint32_t c)
 }
 
 static int
-disassm_and(uint32_t c)
+disassm_and (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "and";
 
@@ -434,7 +449,7 @@ disassm_and(uint32_t c)
 }
 
 static int
-disassm_or(uint32_t c)
+disassm_or (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "or";
 
@@ -442,7 +457,7 @@ disassm_or(uint32_t c)
 }
 
 static int
-disassm_xor(uint32_t c)
+disassm_xor (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   char op[] = "xor";
 
@@ -450,7 +465,7 @@ disassm_xor(uint32_t c)
 }
 
 static int
-disassm_reserved(uint32_t c)
+disassm_reserved (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   printf("in %s with %08x\n", __func__, c);
   abort();
@@ -461,7 +476,7 @@ static char data_format[4][3] = { "SS", "SU", "US", "UU"};
 
 // These operations all have an opcode 0xfxxxxxxx and use a single operand
 static int
-disassm_single(uint32_t c)
+disassm_single (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
 {
   uint8_t op = (c >> 24) & 0xf, r, A, R;
 
@@ -516,7 +531,7 @@ disassm_single(uint32_t c)
   return 0;
 }
 
-int (*op_decode[16])(uint32_t) =
+int (*op_decode[16]) (uint32_t, struct disassemble_info *info) =
 {
   disassm_ldc, disassm_ldc, disassm_control, disassm_dmove,
   disassm_add, disassm_mac, disassm_sub, disassm_msu,
@@ -546,7 +561,7 @@ print_insn_vsdsp (bfd_vma addr, struct disassemble_info *info)
     goto fail;
 
   iword = bfd_getb32(buffer);
-  op_decode[iword >> 28] (iword);
+  op_decode[iword >> 28] (iword, info);
 
   return 4;
 

@@ -338,6 +338,7 @@ md_assemble (char *str)
 
   vsdsp_opc_info_t *opcode;
   char *output = 0;
+  char *p;
   int reg, reg2, A;
   char pend;
   bool need_fix = false;
@@ -548,20 +549,22 @@ md_assemble (char *str)
   if (!insn_continued)
     {
       output = frag_more (4);
-      printf("%s storing %08x in new FRAG\n", __func__, iword);
+      printf("%s storing %08x in new FRAG at %lx\n", __func__, iword, (intptr_t)output);
       md_number_to_chars (output, iword, 4);
     }
-  if (false)  // need_fix
+
+  if (need_fix)
     {
-      printf("%s NEED FIX output %016lx literal: %016lx\n", __func__, (intptr_t)output, (intptr_t)frag_now->fr_literal);
+      p = frag_more(0);
+      printf("\n%s NEED FIX output %lx literal: %lx p: %lx\n\n",
+	     __func__, (intptr_t)output, (intptr_t)frag_now->fr_literal, (intptr_t) p);
 	     fix_new_exp (frag_now,
 			  (output - frag_now->fr_literal),
-			   4,
+			  4,
 			  &exp,
 			  0,
 			  BFD_RELOC_16);
     }
-
   if (*str != 0)
     as_warn ("extra stuff on line ignored");
   
@@ -633,6 +636,30 @@ md_show_usage (FILE *stream ATTRIBUTE_UNUSED)
 {
 }
 
+/* Put number into target byte order (big endian).  */
+
+void
+md_number_to_chars (char *ptr, valueT use, int nbytes)
+{
+  number_to_chars_bigendian (ptr, use, nbytes);
+}
+
+/* Convert from target byte order to host byte order.  */
+
+static valueT
+md_chars_to_number (char *val, int n)
+{
+  valueT retval = 0;
+
+  for (int i = 0; i < n; i++)
+    {
+      retval <<= 8;
+      retval |= *val++;
+    }
+
+  return retval;
+}
+
 /* Apply a fixup to the object file.  */
 
 void
@@ -648,16 +675,11 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
   switch (fixP->fx_r_type)
     {
     case BFD_RELOC_16:
-      for (int i = 0; i < 4; i++) {
-	  op <<= 8;
-	  op |= *buf++;
-	}
-	op |= (val & 0xffff) << 6;
-	printf("%s op is now %08x\n", __func__, op);
-       *buf++ = op >> 24;
-       *buf++ = op >> 16;
-       *buf++ = op >> 8;
-       *buf++ = op >> 0;
+      op = md_chars_to_number(buf, 4);
+      printf("%s op was    %08x\n", __func__, op);
+      op |= (val & 0xffff) << 6;
+      printf("%s op is now %08x\n", __func__, op);
+      md_number_to_chars (buf, op, 4);
       break;
 
     default:
@@ -669,14 +691,6 @@ md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNU
 
   if (fixP->fx_addsy == NULL && fixP->fx_pcrel == 0)
     fixP->fx_done = 1;
-}
-
-/* Put number into target byte order (big endian).  */
-
-void
-md_number_to_chars (char *ptr, valueT use, int nbytes)
-{
-  number_to_chars_bigendian (ptr, use, nbytes);
 }
 
 void
@@ -696,6 +710,7 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
   arelent *rel;
   bfd_reloc_code_real_type r_type;
 
+  printf("%s called\n", __func__);
   rel = xmalloc (sizeof (arelent));
   rel->sym_ptr_ptr = xmalloc (sizeof (asymbol *));
   *rel->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
