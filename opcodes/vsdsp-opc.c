@@ -111,6 +111,7 @@ const vsdsp_opc_info_t vsdsp_opc_info[N_VSDSP_OPCODES] =
   { 0x22, VSDSP_OP_CONTROL, "jmpi", 0 },
   { 0x2d, VSDSP_OP_CONTROL, "halt", 0 },
   { 0x21, VSDSP_OP_CONTROL, "reti", 0 },
+  { 0x24, VSDSP_OP_CONTROL, "loop", 0 },
   
 };
 

@@ -68,7 +68,7 @@ struct target_reg_entry
 #define OP_IN_PMOVE 0x2
 #define OP_DOUBLE_MOVE 0x4
 
-#define N_VSDSP_OPCODES 81
+#define N_VSDSP_OPCODES 82
 
 /* A parallel NOP move (ldx (i0), NOP) to fill up the parallel
    part of an instruction */

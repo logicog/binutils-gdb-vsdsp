@@ -437,6 +437,10 @@ md_assemble (char *str)
 	  need_fix = true;
 	  op_start += 4;
 	  break;
+	case 0x24: // LOOP
+	  need_fix = true;
+	  op_start += 4;
+	  break;
 	case 0x28: // Jcc
 	  need_fix = true;
 	  op_start += 1;
@@ -469,10 +473,21 @@ md_assemble (char *str)
 	  cc_code = condition->code;
 	}
       printf("%s need fix? %d %x\n", __func__, need_fix, opcode->opcode);
+      if (opcode->opcode == 0x24)
+	{
+	  reg = parse_target_reg (&str);
+	  if (reg < 0 && reg > 15) {
+	    as_bad (_("not a valid target register "));
+	    return;
+	  }
+	  iword = (opcode->opcode << 24) | reg;
+      str = skip_space (str + 1);
+	}
       if (need_fix)
 	str = parse_exp (str, &exp);
       str = skip_space (str);
-      iword = opcode->opcode << 24 | cc_code;
+      if (opcode->opcode != 0x24)
+	iword = (opcode->opcode << 24) | cc_code;
       break;
 
     case VSDSP_OP_ADD:
