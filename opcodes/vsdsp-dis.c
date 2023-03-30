@@ -80,7 +80,6 @@ disassm_pmove_fullx (uint32_t c, bool follows_op)
   p = (c >> 6) & 0xf;
   r = (c >> 10) & 0x7;
 
-  // printf("  in %s, c %04x, R %2x, p %x, r %x\n", __func__, c, R, p, r);
   post_mod (p, buf);
   if (c & (1 << 13))
     {
@@ -270,25 +269,26 @@ static int
 disassm_control (uint32_t c, struct disassemble_info *info)
 {
   uint8_t m, r, op = (c >> 24) & 0xf, R, cond;
+  uint8_t count;
   uint32_t addr;
 
   // printf("  in %s, actual op is %x\n", __func__, op);
 
   switch (op)
     {
-    case 0x0: // JRcc
-      cond = c & 0x3f;
-      if (cond > 0x20)
-	{
-	  printf ("jr RESERVED");
-	  break;
-	}
-      fpr(stream, "jr%s", conditions[cond]);
-      break;
-
     case 0xd: // HALT
       fpr(stream, "halt");
       break;
+
+    case 0xb: // Double Move (MVX/MVY)
+      r = (c >> 18) & 0x3f;
+      R = (c >> 12) & 0x3f;
+      fpr(stream, "mvx %s, %s &; ", target_regs[r].name, target_regs[R].name);
+      r = (c >> 6) & 0x3f;
+      R = c & 0x3f;
+      fpr(stream, "mvy %s, %s", target_regs[R].name, target_regs[R].name);
+      break;
+
     case 0xa: // JMPI
       addr = (c >> 6) & 0xffff;
       r = c & 0x7;
@@ -327,6 +327,16 @@ disassm_control (uint32_t c, struct disassemble_info *info)
       (*info->print_address_func) (addr, info);
       break;
 
+    case 0x4: // LOOP
+    case 0x5: // LOOP
+    case 0x6: // LOOP
+    case 0x7: // LOOP
+      count = c & 0x1f;
+      addr = (c >> 6) & 0xffff;
+      fpr(stream, "loop %d, ", count);
+      (*info->print_address_func) (addr, info);
+      break;
+
     case 0x2: // RESP
       r = (c >> 17) & 0x7;
       R = (c >> 20) & 0x7;
@@ -343,6 +353,21 @@ disassm_control (uint32_t c, struct disassemble_info *info)
 	{
 	  fpr(stream, "reti");
 	}
+      break;
+
+    case 0x0: // JRcc
+      cond = c & 0x3f;
+      r = (c >> 6) & 7;
+      addr = (c >> 6) & 0xffff;
+      if (cond > 0x20)
+	{
+	  printf ("JR RESERVED");
+	  break;
+	}
+      if (c & (1 << 23))
+	fpr(stream, "jr%s (i%d)", conditions[cond], r);
+      else
+	fpr(stream, "jr%s ", conditions[cond]);
       break;
 
     default:
