@@ -1327,7 +1327,7 @@ case "${target}" in
     ;;
   vsdsp-*-*)
     noconfigdirs="$noconfigdirs ${libgcj} gdb sim"
-    noconfigdirs="$noconfigdirs ${libgcj} binutils gas ld gprof"
+    noconfigdirs="$noconfigdirs ${libgcj} binutils ld gprof"
     ;;
   wasm32-*-*)
     noconfigdirs="$noconfigdirs ld"

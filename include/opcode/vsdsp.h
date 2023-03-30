@@ -19,6 +19,6 @@ Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA
 
 typedef struct vsdsp_opc_info_t
 {
-  unsigned opcode;
+  unsigned char opcode;
   const char *name;
 } vsdsp_opc_info_t;

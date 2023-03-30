@@ -421,6 +421,8 @@ case ${generic_target} in
 
   visium-*-elf)				fmt=elf ;;
 
+  vsdsp-*-elf)				fmt=elf ;;
+
   wasm32-*-*)                           fmt=elf ;;
 
   xstormy16-*-*)			fmt=elf ;;
