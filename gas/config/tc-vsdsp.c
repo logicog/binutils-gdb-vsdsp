@@ -228,7 +228,7 @@ read_move_op(char **s, struct move_op *op)
   if (op->post_mod >= 0)
     op->post_mod_code = op->post_mod;
   else
-    op->post_mod_code = abs(op->post_mod) ^ 0xf + 1 ;
+    op->post_mod_code = (abs(op->post_mod) ^ 0xf) + 1 ;
   *s = str;
   return 0;
 }
