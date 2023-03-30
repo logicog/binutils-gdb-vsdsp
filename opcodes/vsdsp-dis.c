@@ -66,9 +66,9 @@ disassm_pmove_fullx (uint32_t c)
   // printf("  in %s, c %04x, R %2x, p %x, r %x\n", __func__, c, R, p, r);
   post_mod (p, buf);
   if (c & (1 << 13))
-    fpr (stream, "stx %s, (i%d)%s", target_regs[R].name, r, buf);
+    fpr (stream, " stx %s, (i%d)%s", target_regs[R].name, r, buf);
   else
-    fpr (stream, "ldx (i%d)%s, %s", r, buf, target_regs[R].name);
+    fpr (stream, " ldx (i%d)%s, %s", r, buf, target_regs[R].name);
 
   return 0;
 }
@@ -76,98 +76,98 @@ disassm_pmove_fullx (uint32_t c)
 static int
 disassm_pmove_fully(uint32_t c)
 {
-	char buf[5];
-	uint8_t R, p, r;
+  char buf[5];
+  uint8_t R, p, r;
 
-	c = c & 0x3fff;
-	R = c & 0x3f;
-	p = (c >> 6) & 0xf;
-	r = (c >> 10) & 0x7;
+  c = c & 0x3fff;
+  R = c & 0x3f;
+  p = (c >> 6) & 0xf;
+  r = (c >> 10) & 0x7;
 
-	// printf("  in %s, c %04x, R %2x, p %x, r %x\n", __func__, c, R, p, r);
-	post_mod(p, buf);
-	if (c & (1 << 13))
-		fpr(stream, "sty\t%s, (i%d)%s", target_regs[R].name, r, buf);
-	else
-		fpr(stream, "ldy\t(i%d)%s, %s", r, buf, target_regs[R].name);
+  post_mod(p, buf);
+  if (c & (1 << 13))
+    fpr(stream, " sty\t%s, (i%d)%s", target_regs[R].name, r, buf);
+  else
+    fpr(stream, " ldy\t(i%d)%s, %s", r, buf, target_regs[R].name);
 
-	return 0;
+  return 0;
 }
 
 static int
 disassm_pmove_long(uint32_t c)
 {
-	uint8_t op, s, d, r, R, p;
-	char buf[4];
+  uint8_t op, s, d, r, R, p;
+  char buf[4];
 
-	c = c & 0x1fff;
-	op = (c >> 10) & 0xf;
-	s = (c >> 6) & 0x3f;
-	d = c & 0x3f;
-	// printf("  in %s op %x ", __func__, op);
+  c = c & 0x1fff;
+  op = (c >> 10) & 0xf;
+  s = (c >> 6) & 0x3f;
+  d = c & 0x3f;
+// printf("  in %s op %x ", __func__, op);
 
-	if (! (op & 0xc)) {
-		fpr(stream, "mvy\t%s, %s\n", target_regs[s].name, target_regs[d].name);
-	} else {
-		switch (op & 0x3) {
-		case 0: // long-X move
-			printf("long-X move\n");
-			break;
-		case 1: // I-bus move
-			s = (c >> 9) & 1;
-			r = (c >> 6) & 0x7;
-			p = (c >> 2) & 0xf;
-			R = c & 3;
-//			printf("I bus move load/store %d r: %d, p: %d, R: %d\n", s, r, p, R);
-			post_mod(p, buf);
-			if (!s)
-				fpr(stream, "LDI (I%d) %s, %c\n", r, buf, 'A' + R);
-			else
-				fpr(stream, "STI %c, (I%d) %s\n", 'A' + R, r, buf);
-			break;
-		default:
-			printf("RESERVED\n");
-		}
+  if (! (op & 0xc))
+    {
+      fpr(stream, "mvy\t%s, %s\n", target_regs[s].name, target_regs[d].name);
+    } else {
+      switch (op & 0x3)
+	{
+	case 0: // long-X move
+	  printf("long-X move\n");
+	  break;
+	case 1: // I-bus move
+	  s = (c >> 9) & 1;
+	  r = (c >> 6) & 0x7;
+	  p = (c >> 2) & 0xf;
+	  R = c & 3;
+//		printf("I bus move load/store %d r: %d, p: %d, R: %d\n", s, r, p, R);
+	  post_mod(p, buf);
+	  if (!s)
+	    fpr(stream, "LDI (I%d) %s, %c\n", r, buf, 'A' + R);
+	  else
+	    fpr(stream, "STI %c, (I%d) %s\n", 'A' + R, r, buf);
+	  break;
+	default:
+	  printf("RESERVED\n");
 	}
-	return 0;
+    }
+  return 0;
 }
 
 // In the parallel move, perform 2 short moves
 static int
 disassm_pmove_short(uint32_t c)
 {
-	char buf[] = "\0\0";
-	uint8_t R, p, r;
+  char buf[] = "\0\0";
+  uint8_t R, p, r;
 
-//	printf("  in %s, c %08x\n", __func__, c);
-	if (!(c & (1 << 16))) {
-		printf("%s  RESERVED\n", __func__);
-		return -1;
-	}
-	c = c & 0x1ffff;
-	R = (c >> 8) & 0x7;
-	p = (c >> 11) & 0x1;
-	r = (c >> 12) & 0x7;
+  if (!(c & (1 << 16)))
+    {
+      printf("%s  RESERVED\n", __func__);
+      return -1;
+    }
 
-// 	printf("  in %s, c %04x, R %2x, p %x, r %x\n", __func__, c, R, p, r);
-	buf[0] = p ? '*' : '\0';
-	if (c & (1 << 15))
-		fpr(stream, "STX %s, (I%d)%s", target_regs[R].name, r, buf);
-	else
-		fpr(stream, "LDX (I%d)%s, %s", r, buf, target_regs[R].name);
+  c = c & 0x1ffff;
+  R = (c >> 8) & 0x7;
+  p = (c >> 11) & 0x1;
+  r = (c >> 12) & 0x7;
 
-	R = c & 0x7;
-	p = (c >> 3) & 0x1;
-	r = (c >> 4) & 0x7;
+  buf[0] = p ? '*' : '\0';
+  if (c & (1 << 15))
+    fpr(stream, " stx %s, (i%d)%s", target_regs[R].name, r, buf);
+  else
+    fpr(stream, " ldx (i%d)%s, %s", r, buf, target_regs[R].name);
 
-//	printf("  in %s, c %04x, R %2x, p %x, r %x\n", __func__, c, R, p, r);
-	buf[0] = p ? '*' : '\0';
-	if (c & (1 << 15))
-		fpr(stream, "STY %s, (I%d)%s", target_regs[R].name, r, buf);
-	else
-		fpr(stream, "LDY (I%d)%s, %s", r, buf, target_regs[R].name);
+  R = c & 0x7;
+  p = (c >> 3) & 0x1;
+  r = (c >> 4) & 0x7;
 
-	return 0;
+  buf[0] = p ? '*' : '\0';
+  if (c & (1 << 15))
+    fpr(stream, " sty %s, (i%d)%s", target_regs[R].name, r, buf);
+  else
+    fpr(stream, " ldy (i%d)%s, %s", r, buf, target_regs[R].name);
+
+  return 0;
 }
 
 static int
@@ -310,73 +310,73 @@ two_op_arithmetic(char *op, uint32_t c)
 static int
 disassm_add(uint32_t c)
 {
-	char op[] = "ADD";
+  char op[] = "add";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
 disassm_mac(uint32_t c)
 {
-	printf("in %s with %08x\n", __func__, c);
+  printf("in %s with %08x\n", __func__, c);
 
-	return 0;
+  return 0;
 }
 
 static int
 disassm_sub(uint32_t c)
 {
-	char op[] = "SUB";
+  char op[] = "sub";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
 disassm_msu(uint32_t c)
 {
-	printf("in %s with %08x\n", __func__, c);
+  printf("in %s with %08x\n", __func__, c);
 
-	return 0;
+  return 0;
 }
 
 static int
 disassm_addc(uint32_t c)
 {
-	char op[] = "ADDC";
+  char op[] = "addc";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
 disassm_subc(uint32_t c)
 {
-	char op[] = "SUBC";
+  char op[] = "subc";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
 disassm_ashl(uint32_t c)
 {
-	char op[] = "ASHL";
+  char op[] = "ashl";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
 disassm_and(uint32_t c)
 {
-	char op[] = "AND";
+  char op[] = "and";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
 disassm_or(uint32_t c)
 {
-	char op[] = "OR";
+  char op[] = "or";
 
-	return two_op_arithmetic(op, c);
+  return two_op_arithmetic(op, c);
 }
 
 static int
@@ -475,7 +475,6 @@ print_insn_vsdsp (bfd_vma addr, struct disassemble_info *info)
   stream = info->stream;
   fpr = info->fprintf_func;
 
-  printf("A1\n");
   if ((status = info->read_memory_func (addr, buffer, 4, info)))
     goto fail;
 

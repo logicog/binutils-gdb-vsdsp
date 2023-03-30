@@ -151,7 +151,7 @@ md_begin (void)
   treg_hash_control = str_htab_create ();
 
   /* Insert memonics of the major opcodes into hash table.  */
-  for (count = 0, opcode = vsdsp_opc_info; count++ < 32; opcode++)
+  for (count = 0, opcode = vsdsp_opc_info; count++ < N_VSDSP_OPCODES; opcode++)
     str_hash_insert (opcode_hash_control, opcode->name, opcode, 0);
 
   /* Create hash table of target register names */
@@ -178,7 +178,7 @@ md_assemble (char *str)
   vsdsp_opc_info_t *opcode;
   char *output = 0;
   uint32_t iword = 0;
-  int reg, reg2;
+  int reg, reg2, A;
   char pend;
   expressionS exp;
 
@@ -221,18 +221,14 @@ md_assemble (char *str)
   switch (opcode->itype)
     {
     case VSDSP_OP_LDC:		// ldc value, reg
-      printf("%s: Looking at LDC, str >%s<\n", __func__, str);
       str = parse_exp (str, &exp);
-      printf("%s a >%s<\n", __func__, str);
       str = skip_space (str);
-      printf("%s b >%s<\n", __func__, str);
       if (exp.X_op != O_absent && *str == ',')
 	{
 	  int immediate = exp.X_add_number;
 
 	  str = skip_space (str + 1);
 	  reg = parse_target_reg (&str);
-	  printf("%s c >%s<\n", __func__, str);
 	  if (reg < 0) {
 	    as_bad (_("not a valid target register "));
 	    return;
@@ -244,27 +240,43 @@ md_assemble (char *str)
       break;
 
     case VSDSP_OP_ADD:
+    case VSDSP_OP_ADDC:
+    case VSDSP_OP_MAC:
+    case VSDSP_OP_SUB:
+    case VSDSP_OP_MSU:
+    case VSDSP_OP_SUBC:
+    case VSDSP_OP_ASLH:
+    case VSDSP_OP_AND:
+    case VSDSP_OP_OR:
+    case VSDSP_OP_XOR:
       reg = parse_alu_reg (&str);
-      printf("%s: Got alu register %d\n", __func__, reg);
+      str = skip_space (str + 1);
+      reg2 = parse_alu_reg (&str);
+      str = skip_space (str + 1);
+      A = parse_alu_reg (&str) & 0x7;
+      printf("%s: Got reg %d, reg2 %d, A: %d\n", __func__, reg, reg2, A);
+      iword = opcode->opcode << 28 | reg << 24 | reg2 << 20 | A << 17;
+      iword |= PARALLEL_MV_NOP;
       break;
 
     case VSDSP_OP_SINGLE:
-      printf("%s a >%s<\n", __func__, str);
+      printf("%s flags: %x, last iword %08x\n", __func__, opcode->flags, last_iword);
       reg2 = parse_alu_reg (&str);
-      printf("%s b >%s<\n", __func__, str);
       str = skip_space (str + 1);
-      printf("%s c >%s<\n", __func__, str);
       reg = parse_alu_reg (&str);
-      printf("%s d >%s<\n", __func__, str);
       if (reg >= 8 )
 	{
 	  as_bad (_("not a valid target register "));
 	  return;
 	}
       iword = opcode->opcode << 24 | reg2 << 20 | reg << 17;
+      printf("%s a iword %08x\n", __func__, iword);
+      if (opcode->flags & OP_ALLOWS_PMOVE)
+	iword |= PARALLEL_MV_NOP;
+      printf("%s b iword %08x\n", __func__, iword);
       break;
-      /* mvx, mvy, stx/y/i, ldx/y/i which form only part of an instruction */
 
+      /* mvx, mvy, stx/y/i, ldx/y/i which form only part of an instruction */
       case VSDSP_OP_MOVE:
 	printf("%s last_flags: %x, last iword %08x\n", __func__, last_flags, last_iword);
 	if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE) {
@@ -285,6 +297,7 @@ md_assemble (char *str)
   
   printf("%s final iword %08x\n", __func__, iword);
   last_iword = iword;
+  /* Was the current instruction squeezed into the previous one? */
   if (!output) {
     output = frag_more (4);
     last_flags = opcode->flags;

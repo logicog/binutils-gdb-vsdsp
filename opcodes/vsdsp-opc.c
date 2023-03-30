@@ -22,20 +22,20 @@
 #include "sysdep.h"
 #include "opcode/vsdsp.h"
 
-const vsdsp_opc_info_t vsdsp_opc_info[32] =
+const vsdsp_opc_info_t vsdsp_opc_info[N_VSDSP_OPCODES] =
 {
   { 0x00, VSDSP_OP_LDC, "ldc", 0 },
   { 0x01, VSDSP_OP_LDC, "ldc", 0 },
-  { 0x02, VSDSP_OP_ADD, "add", OP_ALLOWS_PMOVE },
-  { 0x03, VSDSP_OP_MAC, "mac", OP_ALLOWS_PMOVE },
-  { 0x04, VSDSP_OP_SUB, "sub", OP_ALLOWS_PMOVE },
-  { 0x05, VSDSP_OP_MSU, "msu", OP_ALLOWS_PMOVE },
-  { 0x06, VSDSP_OP_ADDC, "addc", OP_ALLOWS_PMOVE },
-  { 0x07, VSDSP_OP_SUBC, "subc", OP_ALLOWS_PMOVE },
-  { 0x08, VSDSP_OP_ASLH, "aslh", OP_ALLOWS_PMOVE },
-  { 0x09, VSDSP_OP_AND, "and", OP_ALLOWS_PMOVE },
-  { 0x0a, VSDSP_OP_OR, "or", OP_ALLOWS_PMOVE },
-  { 0x0b, VSDSP_OP_XOR, "xor", OP_ALLOWS_PMOVE },
+  { 0x04, VSDSP_OP_ADD, "add", OP_ALLOWS_PMOVE },
+  { 0x05, VSDSP_OP_MAC, "mac", OP_ALLOWS_PMOVE },
+  { 0x06, VSDSP_OP_SUB, "sub", OP_ALLOWS_PMOVE },
+  { 0x07, VSDSP_OP_MSU, "msu", OP_ALLOWS_PMOVE },
+  { 0x08, VSDSP_OP_ADDC, "addc", OP_ALLOWS_PMOVE },
+  { 0x09, VSDSP_OP_SUBC, "subc", OP_ALLOWS_PMOVE },
+  { 0x0a, VSDSP_OP_ASLH, "aslh", OP_ALLOWS_PMOVE },
+  { 0x0b, VSDSP_OP_AND, "and", OP_ALLOWS_PMOVE },
+  { 0x0c, VSDSP_OP_OR, "or", OP_ALLOWS_PMOVE },
+  { 0x0d, VSDSP_OP_XOR, "xor", OP_ALLOWS_PMOVE },
 
   { 0xf0, VSDSP_OP_SINGLE, "abs", OP_ALLOWS_PMOVE },
   { 0xf1, VSDSP_OP_SINGLE, "asr", OP_ALLOWS_PMOVE },
