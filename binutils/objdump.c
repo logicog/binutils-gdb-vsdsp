@@ -3207,7 +3207,6 @@ disassemble_bytes (struct disassemble_info *inf,
   size_t octets;
   SFILE sfile;
 
-  printf("%s called\n", __func__);
   aux = (struct objdump_disasm_info *) inf->application_data;
   section = inf->section;
 
@@ -3272,7 +3271,6 @@ disassemble_bytes (struct disassemble_info *inf,
     }
 
   addr_offset = start_offset;
-  printf("%s: addr_offset %lx stop %lx\n", __func__, addr_offset, stop_offset);
   while (addr_offset < stop_offset)
     {
       bool need_nl = false;
@@ -3389,7 +3387,6 @@ disassemble_bytes (struct disassemble_info *inf,
 			insn_size = insn_width;
 		      else
 			{
-			  printf("Calling disassemble_fn\n");
 			  /* We find the length by calling the dissassembler
 			     function with a dummy print handler.  This should
 			     work unless the disassembler is not expecting to
@@ -3677,6 +3674,7 @@ disassemble_section (bfd *abfd, asection *section, void *inf)
   bfd_vma sign_adjust = 0;
   struct disassemble_info *pinfo = (struct disassemble_info *) inf;
   struct objdump_disasm_info *paux;
+  pinfo->octets_per_byte = bfd_octets_per_byte (abfd, section);
   unsigned int opb = pinfo->octets_per_byte;
   bfd_byte *data = NULL;
   bfd_size_type datasize = 0;

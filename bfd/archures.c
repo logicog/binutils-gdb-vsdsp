@@ -1410,6 +1410,16 @@ unsigned int
 bfd_octets_per_byte (const bfd *abfd, const asection *sec)
 {
   if (bfd_get_flavour (abfd) == bfd_target_elf_flavour
+      && bfd_get_arch (abfd) == bfd_arch_vsdsp)
+    {
+      if (!sec)
+	return 4;
+      if (strcmp(sec->name, ".text"))
+	return 2;
+      return 4;
+    }
+
+  if (bfd_get_flavour (abfd) == bfd_target_elf_flavour
       && sec != NULL
       && (sec->flags & SEC_ELF_OCTETS) != 0)
     return 1;

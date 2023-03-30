@@ -191,6 +191,7 @@ vsdsp_elf_info_to_howto (bfd *abfd ATTRIBUTE_UNUSED,
 #define bfd_elf32_bfd_reloc_type_lookup vsdsp_elf_reloc_type_lookup
 #define bfd_elf32_bfd_reloc_name_lookup vsdsp_elf_reloc_name_lookup
 #define elf_info_to_howto		vsdsp_elf_info_to_howto
+#define OCTETS_PER_BYTE(ABFD, SEC) 4
 
 /*
 #define bfd_elf32_bfd_reloc_type_lookup bfd_default_reloc_type_lookup
