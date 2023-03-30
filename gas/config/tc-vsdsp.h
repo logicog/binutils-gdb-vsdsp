@@ -21,6 +21,7 @@
 #define TC_VSDSP 1
 #define TARGET_BYTES_BIG_ENDIAN 1
 #define WORKING_DOT_WORD
+#define OCTETS_PER_BYTE_POWER 	2
 
 /* This macro is the BFD target name to use when creating the output
    file.  This will normally depend upon the `OBJ_FMT' macro.  */
