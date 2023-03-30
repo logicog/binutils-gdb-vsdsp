@@ -172,7 +172,6 @@ md_begin (void)
 
 struct move_op {
   int addr_reg;
-  bool is_indirect;
   int post_mod;
   int post_mod_type;
   unsigned char post_mod_code;
@@ -185,38 +184,36 @@ read_move_op(char **s, struct move_op *op)
   char *str = *s;
 
   // printf("%s A >%s<\n", __func__, str);
-  op->is_indirect = false;
   op->post_mod_code = 0;
-  if (*str == '(')
+  if (*str != '(')
     {
-      op->is_indirect = true;
-      str++;
+      as_bad (_("not a valid address operand, expected indirect addressing"));
+      ignore_rest_of_line ();
+      return -1;
     }
-  str = skip_space (str);
+  str = skip_space (str + 1);
   if (TOLOWER (*str) != 'i')
     {
-      as_bad (_("not a valid address operand"));
+      as_bad (_("not a valid address operand, expected address register"));
       ignore_rest_of_line ();
       return -1;
     }
   op->addr_reg = *(++str) - '0';
   if (op->addr_reg < 0 || op->addr_reg > 7)
     {
-      as_bad (_("not a valid address operand"));
+      as_bad (_("invalid address register"));
       ignore_rest_of_line ();
       return -1;
     }
   // printf("%s A1 >%s<\n", __func__, str);
   str = skip_space (str + 1);
-  if (op->is_indirect)
+  if (*str++ != ')')
     {
-      if (*str++ != ')')
-	{
-	  as_bad (_("missing closing parenthesis"));
-	  ignore_rest_of_line ();
-	  return -1;
-	}
+      as_bad (_("missing closing parenthesis"));
+      ignore_rest_of_line ();
+      return -1;
     }
+
   // printf("%s B >%s<\n", __func__, str);
   op_end = str;
   while (*op_end && *op_end != ','
@@ -244,6 +241,85 @@ read_move_op(char **s, struct move_op *op)
   return 0;
 }
 
+static int
+code_moves(vsdsp_opc_info_t *opcode, char **s, uint32_t *iword)
+{
+  char *str = *s;
+  int reg, reg2;
+  struct move_op m_op;
+  // Single full move
+  uint16_t f_move;
+  // Parallel move (full, 2xshort, register-to-register, long-X or I-bus)
+  uint32_t p_move;
+  // Short move as part of a double short move in a parallel move
+  uint16_t s_move;
+
+  f_move = p_move = 0x0;
+  switch (opcode->name[0])
+  {
+    case 's': // Store operation
+      reg = parse_target_reg (&str);
+      str = skip_space (str + 1);
+      if (read_move_op(&str, &m_op))
+	return -1;
+      f_move = 1 << 13 | m_op.addr_reg << 10 | m_op.post_mod_code << 6 | reg;
+      p_move = f_move | (opcode->name[2] == 'y' ? (1 << 15) : 0);
+      break;
+    case 'l': // Load operation
+      if (read_move_op(&str, &m_op))
+	return -1;
+      str = skip_space (str + 1);
+      reg = parse_target_reg (&str);
+      printf("%s load from address reg %d to register# %d\n", __func__, m_op.addr_reg, reg);
+      f_move = m_op.addr_reg << 10 | m_op.post_mod_code << 6 | reg;
+      p_move = f_move | (opcode->name[2] == 'y' ? (1 << 15) : 0);
+      break;
+    case 'm':  // Register-register move on the y-bus, only as parallel move
+      reg = parse_target_reg (&str);
+      str = skip_space (str + 1);
+      reg2 = parse_target_reg (&str);
+      p_move = reg << 6 | reg2;
+      break;
+    default:
+      abort();
+  }
+
+    /* Verify if the full move fulfills the conditions for a short move */
+  if (f_move && ! (f_move & (0x3f << 3)))
+    s_move = ((f_move & (0x1f << 9)) << 3) | (f_move & 0x7);
+  else
+    s_move = S_MOVE_INV;
+
+  printf("%s In move, last_flags: %x\n", __func__, last_flags);
+  if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE)
+    {
+      printf("%s testing parallel move last_output %08x f_move %04x p_move %08x s_move %04x\n",
+	      __func__, *iword, f_move, p_move, s_move);
+      *iword &= 0xfffe0000;
+      *iword |= opcode->opcode << 10 |  m_op.addr_reg << 6 | reg;
+    }
+  else if (! (last_flags & OP_ALLOWS_PMOVE))
+    {
+      printf("%s starting standalone move f_move %04x p_move %08x s_move %04x\n", __func__, f_move, p_move, s_move);
+      if (opcode->name[0] == 'm')
+	{
+	  /* encode the first move as a parallel move to a NOP */
+	    *iword = 0xf4 << 24 | (1 << 14) | p_move;
+	  /* second move uses second slot in a double reg-reg move
+	    *iword = 0x2b << 24 | p_move << 12 | */
+	}
+      else
+	{
+	  if (opcode->name[2] == 'x')
+	    *iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | f_move << 14 | FULL_YMOVE_NOP;
+	  else
+	    *iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | FULL_XMOVE_NOP | (f_move << 14);
+	}
+    }
+  *s = str;
+  return 0;
+}
+
 /* This is the guts of the machine-dependent assembler.  STR points to
    a machine dependent instruction.  This function is supposed to emit
    the frags/bytes it assembles to.  */
@@ -261,15 +337,8 @@ md_assemble (char *str)
   char pend;
   bool need_fix = false;
   expressionS exp;
-  struct move_op m_op;
   struct target_cc_entry *condition;
   char cc_code;
-  // Single full move
-  uint16_t f_move;
-  // Parallel move (full, 2xshort, register-to-register, long-X or I-bus)
-  uint32_t p_move;
-  // Short move as part of a double short move in a parallel move
-  uint16_t s_move;
   bool	line_continued = false;
 
   do
@@ -435,56 +504,8 @@ md_assemble (char *str)
 	    double move or just be a side-effect in a parallel move to an arithmetic operation */
 	  case VSDSP_OP_MOVE:
 	    printf("%s: In VSDSP_OP_MOVE, line continued: %d\n", __func__, line_continued);
-	    f_move = p_move = 0x0;
-	    switch (opcode->name[0])
-	    {
-	      case 's': // Store operation
-		reg = parse_target_reg (&str);
-		str = skip_space (str + 1);
-		if (read_move_op(&str, &m_op))
-		  return;
-		p_move = 1 << 13 | m_op.addr_reg << 10 | m_op.post_mod_code << 6 | reg;
-		f_move = p_move | (opcode->name[2] == 'y' ? (1 << 15) : 0);
-		break;
-	      case 'l': // Load operation
-		if (read_move_op(&str, &m_op))
-		  return;
-		str = skip_space (str + 1);
-		reg = parse_target_reg (&str);
-		p_move = m_op.addr_reg << 10 | m_op.post_mod_code << 6 | reg;
-		f_move = p_move | (opcode->name[2] == 'y' ? (1 << 15) : 0);
-		break;
-	      case 'm':  // Register-register move on the y-bus, only as parallel move
-		reg = parse_target_reg (&str);
-		str = skip_space (str + 1);
-		reg2 = parse_target_reg (&str);
-		p_move = 0x15 << 10 | reg << 6 | reg2;
-		break;
-	      default:
-		abort();
-	    }
-	    /* Verify if the full move fulfills the conditions for a short move */
-	    if (f_move && ! (f_move & (0x3f << 3)))
-	      s_move = ((f_move & (0x1f << 9)) << 3) | (f_move & 0x7);
-	    else
-	  s_move = S_MOVE_INV;
-	    printf("%s In move, last_flags: %x\n", __func__, last_flags);
-	    if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE)
-	      {
-		printf("%s testing parallel move last_output %08x f_move %04x p_move %08x s_move %04x\n",
-		      __func__, iword, f_move, p_move, s_move);
-		iword &= 0xfffe0000;
-		iword |= opcode->opcode << 10 |  m_op.addr_reg << 6 | reg;
-	      }
-	    else if (! (last_flags & OP_ALLOWS_PMOVE))
-	      {
-		printf("%s starting standalone move f_move %04x p_move %08x s_move %04x\n", __func__, f_move, p_move, s_move);
-		f_move = opcode->name[0] == 's' ? (1 << 13) : 0;
-		if (opcode->name[2] == 'x')
-		  iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | f_move << 14 | FULL_YMOVE_NOP;
-		else
-		  iword = (DOUBLE_FULL_MOVES_OPCODE << 28) | FULL_YMOVE_NOP | (f_move << 14);
-	      }
+	    if (code_moves(opcode, &str, &iword))
+	      return;
 	    break;
 
 	default:

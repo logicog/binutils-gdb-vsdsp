@@ -77,7 +77,7 @@ struct target_reg_entry
 /* Full move NOPs to fill up the second half of a double full
    move, the equivalent of ldx/y (i0), nop */
 #define FULL_XMOVE_NOP (0x24 << 14)
-#define FULL_YMOVE_NOP ((1 << 15) | 0x24)
+#define FULL_YMOVE_NOP 0x24
 
 /* Opcode in bits 28-32 for two double full moves */
 #define DOUBLE_FULL_MOVES_OPCODE 0x3
