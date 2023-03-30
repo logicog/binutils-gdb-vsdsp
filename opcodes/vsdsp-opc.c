@@ -117,7 +117,7 @@ const vsdsp_opc_info_t vsdsp_opc_info[N_VSDSP_OPCODES] =
 // lsl, lslc, and, nop ???
 
 /* List of target registers for moves, load and store
- * operations: mvx/mvy, ldx/ldy, stx/sty, ldc
+ * operations: mv, ldx/ldy, stx/sty, ldc
  */
 const struct target_reg_entry target_regs[64] =
 {

@@ -70,10 +70,18 @@ struct target_reg_entry
 
 #define N_VSDSP_OPCODES 81
 
-/* A parallel NOP move (ldx (i0), NOP) to fill up the parallel part of an instruction */
+/* A parallel NOP move (ldx (i0), NOP) to fill up the parallel
+   part of an instruction */
 #define PARALLEL_MV_NOP 0x24
+
+/* Full move NOPs to fill up the second half of a double full
+   move, the equivalent of ldx/y (i0), nop */
+#define FULL_XMOVE_NOP (0x24 << 14)
+#define FULL_YMOVE_NOP ((1 << 15) | 0x24)
+
 /* Opcode in bits 28-32 for two double full moves */
 #define DOUBLE_FULL_MOVES_OPCODE 0x3
+#define S_MOVE_INV 0x8000
 
 typedef struct vsdsp_opc_info_t
 {
