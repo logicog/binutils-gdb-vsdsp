@@ -314,6 +314,8 @@ TESTS = testsuite/common/bits32m0$(EXEEXT) \
 @SIM_ENABLE_ARCH_v850_TRUE@	v850/engine.h
 
 @SIM_ENABLE_ARCH_v850_TRUE@am__append_109 = $(v850_BUILD_OUTPUTS)
+@SIM_ENABLE_ARCH_vsdsp_TRUE@am__append_74 = vsdsp/run
+
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
@@ -359,7 +361,7 @@ CONFIG_CLEAN_FILES = aarch64/.gdbinit arm/.gdbinit avr/.gdbinit \
 	mips/.gdbinit mn10300/.gdbinit moxie/.gdbinit msp430/.gdbinit \
 	or1k/.gdbinit ppc/.gdbinit pru/.gdbinit riscv/.gdbinit \
 	rl78/.gdbinit rx/.gdbinit sh/.gdbinit erc32/.gdbinit \
-	v850/.gdbinit example-synacor/.gdbinit arch-subdir.mk .gdbinit
+	v850/.gdbinit vsdsp/.gdbinit example-synacor/.gdbinit arch-subdir.mk .gdbinit
 CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 ARFLAGS = cru
@@ -933,6 +935,7 @@ am__EXEEXT_7 = testsuite/common/bits32m0$(EXEEXT) \
 @SIM_ENABLE_ARCH_rx_TRUE@am__EXEEXT_38 = rx/run$(EXEEXT)
 @SIM_ENABLE_ARCH_sh_TRUE@am__EXEEXT_39 = sh/run$(EXEEXT)
 @SIM_ENABLE_ARCH_v850_TRUE@am__EXEEXT_40 = v850/run$(EXEEXT)
+@SIM_ENABLE_ARCH_vsdsp_TRUE@am__EXEEXT_41 = vsdsp/run$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_aarch64_run_OBJECTS =
 aarch64_run_OBJECTS = $(am_aarch64_run_OBJECTS)
@@ -1087,6 +1090,10 @@ mn10300_run_OBJECTS = $(am_mn10300_run_OBJECTS)
 @SIM_ENABLE_ARCH_mn10300_TRUE@mn10300_run_DEPENDENCIES =  \
 @SIM_ENABLE_ARCH_mn10300_TRUE@	mn10300/nrun.o mn10300/libsim.a \
 @SIM_ENABLE_ARCH_mn10300_TRUE@	$(am__DEPENDENCIES_4)
+am_vsdsp_run_OBJECTS =
+vsdsp_run_OBJECTS = $(am_vsdsp_run_OBJECTS)
+@SIM_ENABLE_ARCH_vsdsp_TRUE@vsdsp_run_DEPENDENCIES = vsdsp/nrun.o \
+@SIM_ENABLE_ARCH_vsdsp_TRUE@	vsdsp/libsim.a $(am__DEPENDENCIES_1)
 am_moxie_run_OBJECTS =
 moxie_run_OBJECTS = $(am_moxie_run_OBJECTS)
 @SIM_ENABLE_ARCH_moxie_TRUE@moxie_run_DEPENDENCIES = moxie/nrun.o \
@@ -1247,7 +1254,7 @@ SOURCES = $(aarch64_libsim_a_SOURCES) \
 	$(msp430_run_SOURCES) $(or1k_run_SOURCES) $(ppc_run_SOURCES) \
 	$(pru_run_SOURCES) $(riscv_run_SOURCES) $(rl78_run_SOURCES) \
 	$(rx_run_SOURCES) $(sh_gencode_SOURCES) $(sh_run_SOURCES) \
-	testsuite/common/alu-tst.c testsuite/common/bits-gen.c \
+	$(vsdsp_run_SOURCES) testsuite/common/alu-tst.c testsuite/common/bits-gen.c \
 	testsuite/common/bits32m0.c testsuite/common/bits32m31.c \
 	testsuite/common/bits64m0.c testsuite/common/bits64m63.c \
 	testsuite/common/fpu-tst.c $(v850_run_SOURCES)
@@ -1548,6 +1555,7 @@ AS_FOR_TARGET_RL78 = @AS_FOR_TARGET_RL78@
 AS_FOR_TARGET_RX = @AS_FOR_TARGET_RX@
 AS_FOR_TARGET_SH = @AS_FOR_TARGET_SH@
 AS_FOR_TARGET_V850 = @AS_FOR_TARGET_V850@
+AS_FOR_TARGET_VSDSP = @AS_FOR_TARGET_VSDSP@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -1588,6 +1596,7 @@ CC_FOR_TARGET_RL78 = @CC_FOR_TARGET_RL78@
 CC_FOR_TARGET_RX = @CC_FOR_TARGET_RX@
 CC_FOR_TARGET_SH = @CC_FOR_TARGET_SH@
 CC_FOR_TARGET_V850 = @CC_FOR_TARGET_V850@
+CC_FOR_TARGET_VSDSP = @CC_FOR_TARGET_VSDSP@
 CFLAGS = @CFLAGS@
 CFLAGS_FOR_BUILD = @CFLAGS_FOR_BUILD@
 CGEN_MAINT = @CGEN_MAINT@
@@ -1650,6 +1659,7 @@ LD_FOR_TARGET_RL78 = @LD_FOR_TARGET_RL78@
 LD_FOR_TARGET_RX = @LD_FOR_TARGET_RX@
 LD_FOR_TARGET_SH = @LD_FOR_TARGET_SH@
 LD_FOR_TARGET_V850 = @LD_FOR_TARGET_V850@
+LD_FOR_TARGET_VSDSP = @LD_FOR_TARGET_VSDSP@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -3059,6 +3069,13 @@ testsuite_common_CPPFLAGS = \
 @SIM_ENABLE_ARCH_v850_TRUE@v850_IGEN_TRACE = # -G omit-line-numbers # -G trace-rule-selection -G trace-rule-rejection -G trace-entries
 @SIM_ENABLE_ARCH_v850_TRUE@v850_IGEN_INSN = $(srcdir)/v850/v850.igen
 @SIM_ENABLE_ARCH_v850_TRUE@v850_IGEN_DC = $(srcdir)/v850/v850.dc
+
+@SIM_ENABLE_ARCH_vsdsp_TRUE@vsdsp_run_SOURCES = 
+@SIM_ENABLE_ARCH_vsdsp_TRUE@vsdsp_run_LDADD = \
+@SIM_ENABLE_ARCH_vsdsp_TRUE@	vsdsp/nrun.o \
+@SIM_ENABLE_ARCH_vsdsp_TRUE@	vsdsp/libsim.a \
+@SIM_ENABLE_ARCH_vsdsp_TRUE@	$(SIM_COMMON_LIBS)
+
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -3066,7 +3083,7 @@ all: $(BUILT_SOURCES) config.h
 .SUFFIXES: .c .lo .log .o .obj .test .test$(EXEEXT) .trs
 am--refresh: Makefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/common/local.mk $(srcdir)/igen/local.mk $(srcdir)/testsuite/local.mk $(srcdir)/testsuite/common/local.mk $(srcdir)/aarch64/local.mk $(srcdir)/arm/local.mk $(srcdir)/avr/local.mk $(srcdir)/bfin/local.mk $(srcdir)/bpf/local.mk $(srcdir)/cr16/local.mk $(srcdir)/cris/local.mk $(srcdir)/d10v/local.mk $(srcdir)/erc32/local.mk $(srcdir)/example-synacor/local.mk $(srcdir)/frv/local.mk $(srcdir)/ft32/local.mk $(srcdir)/h8300/local.mk $(srcdir)/iq2000/local.mk $(srcdir)/lm32/local.mk $(srcdir)/m32c/local.mk $(srcdir)/m32r/local.mk $(srcdir)/m68hc11/local.mk $(srcdir)/mcore/local.mk $(srcdir)/microblaze/local.mk $(srcdir)/mips/local.mk $(srcdir)/mn10300/local.mk $(srcdir)/moxie/local.mk $(srcdir)/msp430/local.mk $(srcdir)/or1k/local.mk $(srcdir)/ppc/local.mk $(srcdir)/pru/local.mk $(srcdir)/riscv/local.mk $(srcdir)/rl78/local.mk $(srcdir)/rx/local.mk $(srcdir)/sh/local.mk $(srcdir)/v850/local.mk $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/common/local.mk $(srcdir)/igen/local.mk $(srcdir)/testsuite/local.mk $(srcdir)/testsuite/common/local.mk $(srcdir)/aarch64/local.mk $(srcdir)/arm/local.mk $(srcdir)/avr/local.mk $(srcdir)/bfin/local.mk $(srcdir)/bpf/local.mk $(srcdir)/cr16/local.mk $(srcdir)/cris/local.mk $(srcdir)/d10v/local.mk $(srcdir)/erc32/local.mk $(srcdir)/example-synacor/local.mk $(srcdir)/frv/local.mk $(srcdir)/ft32/local.mk $(srcdir)/h8300/local.mk $(srcdir)/iq2000/local.mk $(srcdir)/lm32/local.mk $(srcdir)/m32c/local.mk $(srcdir)/m32r/local.mk $(srcdir)/m68hc11/local.mk $(srcdir)/mcore/local.mk $(srcdir)/microblaze/local.mk $(srcdir)/mips/local.mk $(srcdir)/mn10300/local.mk $(srcdir)/moxie/local.mk $(srcdir)/msp430/local.mk $(srcdir)/or1k/local.mk $(srcdir)/ppc/local.mk $(srcdir)/pru/local.mk $(srcdir)/riscv/local.mk $(srcdir)/rl78/local.mk $(srcdir)/rx/local.mk $(srcdir)/sh/local.mk $(srcdir)/v850/local.mk $(srcdir)/vsdsp/local.mk $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -3088,7 +3105,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe);; \
 	esac;
-$(srcdir)/common/local.mk $(srcdir)/igen/local.mk $(srcdir)/testsuite/local.mk $(srcdir)/testsuite/common/local.mk $(srcdir)/aarch64/local.mk $(srcdir)/arm/local.mk $(srcdir)/avr/local.mk $(srcdir)/bfin/local.mk $(srcdir)/bpf/local.mk $(srcdir)/cr16/local.mk $(srcdir)/cris/local.mk $(srcdir)/d10v/local.mk $(srcdir)/erc32/local.mk $(srcdir)/example-synacor/local.mk $(srcdir)/frv/local.mk $(srcdir)/ft32/local.mk $(srcdir)/h8300/local.mk $(srcdir)/iq2000/local.mk $(srcdir)/lm32/local.mk $(srcdir)/m32c/local.mk $(srcdir)/m32r/local.mk $(srcdir)/m68hc11/local.mk $(srcdir)/mcore/local.mk $(srcdir)/microblaze/local.mk $(srcdir)/mips/local.mk $(srcdir)/mn10300/local.mk $(srcdir)/moxie/local.mk $(srcdir)/msp430/local.mk $(srcdir)/or1k/local.mk $(srcdir)/ppc/local.mk $(srcdir)/pru/local.mk $(srcdir)/riscv/local.mk $(srcdir)/rl78/local.mk $(srcdir)/rx/local.mk $(srcdir)/sh/local.mk $(srcdir)/v850/local.mk $(am__empty):
+$(srcdir)/common/local.mk $(srcdir)/igen/local.mk $(srcdir)/testsuite/local.mk $(srcdir)/testsuite/common/local.mk $(srcdir)/aarch64/local.mk $(srcdir)/arm/local.mk $(srcdir)/avr/local.mk $(srcdir)/bfin/local.mk $(srcdir)/bpf/local.mk $(srcdir)/cr16/local.mk $(srcdir)/cris/local.mk $(srcdir)/d10v/local.mk $(srcdir)/erc32/local.mk $(srcdir)/example-synacor/local.mk $(srcdir)/frv/local.mk $(srcdir)/ft32/local.mk $(srcdir)/h8300/local.mk $(srcdir)/iq2000/local.mk $(srcdir)/lm32/local.mk $(srcdir)/m32c/local.mk $(srcdir)/m32r/local.mk $(srcdir)/m68hc11/local.mk $(srcdir)/mcore/local.mk $(srcdir)/microblaze/local.mk $(srcdir)/mips/local.mk $(srcdir)/mn10300/local.mk $(srcdir)/moxie/local.mk $(srcdir)/msp430/local.mk $(srcdir)/or1k/local.mk $(srcdir)/ppc/local.mk $(srcdir)/pru/local.mk $(srcdir)/riscv/local.mk $(srcdir)/rl78/local.mk $(srcdir)/rx/local.mk $(srcdir)/sh/local.mk $(srcdir)/v850/local.mk $(srcdir)/vsdsp/local.mk $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -3174,6 +3191,8 @@ sh/.gdbinit: $(top_builddir)/config.status $(top_srcdir)/common/gdbinit.in
 erc32/.gdbinit: $(top_builddir)/config.status $(top_srcdir)/common/gdbinit.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 v850/.gdbinit: $(top_builddir)/config.status $(top_srcdir)/common/gdbinit.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+vsdsp/.gdbinit: $(top_builddir)/config.status $(top_srcdir)/common/gdbinit.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 example-synacor/.gdbinit: $(top_builddir)/config.status $(top_srcdir)/common/gdbinit.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -3826,6 +3845,10 @@ moxie/run$(EXEEXT): $(moxie_run_OBJECTS) $(moxie_run_DEPENDENCIES) $(EXTRA_moxie
 	@rm -f moxie/run$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(moxie_run_OBJECTS) $(moxie_run_LDADD) $(LIBS)
 
+vsdsp/run$(EXEEXT): $(vsdsp_run_OBJECTS) $(vsdsp_run_DEPENDENCIES) $(EXTRA_vsdsp_run_DEPENDENCIES) vsdsp/$(am__dirstamp)
+	@rm -f vsdsp/run$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(vsdsp_run_OBJECTS) $(vsdsp_run_LDADD) $(LIBS)
+
 msp430/run$(EXEEXT): $(msp430_run_OBJECTS) $(msp430_run_DEPENDENCIES) $(EXTRA_msp430_run_DEPENDENCIES) msp430/$(am__dirstamp)
 	@rm -f msp430/run$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(msp430_run_OBJECTS) $(msp430_run_LDADD) $(LIBS)
@@ -4068,6 +4091,7 @@ clean-libtool:
 	-rm -rf sh/.libs sh/_libs
 	-rm -rf testsuite/common/.libs testsuite/common/_libs
 	-rm -rf v850/.libs v850/_libs
+	-rm -rf vsdsp/.libs vsdsp/_libs
 
 distclean-libtool:
 	-rm -f libtool config.lt
@@ -4680,6 +4704,7 @@ distclean-generic:
 	-rm -f testsuite/common/$(am__dirstamp)
 	-rm -f v850/$(DEPDIR)/$(am__dirstamp)
 	-rm -f v850/$(am__dirstamp)
+	-rm -f vsdsp/$(am__dirstamp)
 	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
