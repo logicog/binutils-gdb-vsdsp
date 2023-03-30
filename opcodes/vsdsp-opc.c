@@ -32,23 +32,23 @@ const vsdsp_opc_info_t vsdsp_opc_info[N_VSDSP_OPCODES] =
   { 0x07, VSDSP_OP_MSU, "msu", OP_ALLOWS_PMOVE },
   { 0x08, VSDSP_OP_ADDC, "addc", OP_ALLOWS_PMOVE },
   { 0x09, VSDSP_OP_SUBC, "subc", OP_ALLOWS_PMOVE },
-  { 0x0a, VSDSP_OP_ASLH, "aslh", OP_ALLOWS_PMOVE },
+  { 0x0a, VSDSP_OP_ASLH, "ashl", OP_ALLOWS_PMOVE },
   { 0x0b, VSDSP_OP_AND, "and", OP_ALLOWS_PMOVE },
   { 0x0c, VSDSP_OP_OR, "or", OP_ALLOWS_PMOVE },
   { 0x0d, VSDSP_OP_XOR, "xor", OP_ALLOWS_PMOVE },
 
-  { 0xf0, VSDSP_OP_SINGLE, "abs", OP_ALLOWS_PMOVE },
-  { 0xf1, VSDSP_OP_SINGLE, "asr", OP_ALLOWS_PMOVE },
-  { 0xf2, VSDSP_OP_SINGLE, "lsr", OP_ALLOWS_PMOVE },
-  { 0xf3, VSDSP_OP_SINGLE, "lsrc", OP_ALLOWS_PMOVE },
-  { 0xf4, VSDSP_OP_SINGLE, "nop", OP_ALLOWS_PMOVE },
-  { 0xf5, VSDSP_OP_SINGLE, "exp", OP_ALLOWS_PMOVE },
-  { 0xf6, VSDSP_OP_SINGLE, "sat", OP_ALLOWS_PMOVE },
-  { 0xf7, VSDSP_OP_SINGLE, "rnd", OP_ALLOWS_PMOVE },
-  { 0xfe, VSDSP_OP_SINGLE, "mulsu", OP_ALLOWS_PMOVE },
-  { 0xff, VSDSP_OP_SINGLE, "muluu", OP_ALLOWS_PMOVE },
-  { 0xfe, VSDSP_OP_SINGLE, "mulss", OP_ALLOWS_PMOVE },
-  { 0xff, VSDSP_OP_SINGLE, "mulus", OP_ALLOWS_PMOVE },
+  { 0xf0, VSDSP_OP_SINGLE, "abs", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xf1, VSDSP_OP_SINGLE, "asr", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xf2, VSDSP_OP_SINGLE, "lsr", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xf3, VSDSP_OP_SINGLE, "lsrc", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xf4, VSDSP_OP_SINGLE, "nop", OP_ALLOWS_PMOVE },	// 0 operands
+  { 0xf5, VSDSP_OP_SINGLE, "exp", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xf6, VSDSP_OP_SINGLE, "sat", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xf7, VSDSP_OP_SINGLE, "rnd", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xfe, VSDSP_OP_SINGLE, "mulsu", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xff, VSDSP_OP_SINGLE, "muluu", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xfe, VSDSP_OP_SINGLE, "mulss", OP_ALLOWS_PMOVE },	// 2 operands
+  { 0xff, VSDSP_OP_SINGLE, "mulus", OP_ALLOWS_PMOVE },	// 2 operands
   
   { 0x14, VSDSP_OP_MOVE, "ldx", OP_IN_PMOVE | OP_DOUBLE_MOVE },
   { 0x14, VSDSP_OP_MOVE, "stx", OP_IN_PMOVE | OP_DOUBLE_MOVE },
@@ -58,6 +58,59 @@ const vsdsp_opc_info_t vsdsp_opc_info[N_VSDSP_OPCODES] =
   { 0x15, VSDSP_OP_MOVE, "sti", OP_IN_PMOVE },
   { 0x10, VSDSP_OP_MOVE, "mvx", OP_IN_PMOVE | OP_DOUBLE_MOVE },
   { 0x10, VSDSP_OP_MOVE, "mvy", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+  { 0x10, VSDSP_OP_MOVE, "mv", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+
+  { 0x29, VSDSP_OP_CONTROL, "call", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callcs", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "calles", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callvs", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callns", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callzs", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "calllt", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callle", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callcc", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callec", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callvc", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callnc", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callzc", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callge", 0 },
+  { 0x29, VSDSP_OP_CONTROL, "callgt", 0 },
+
+  { 0x28, VSDSP_OP_CONTROL, "j", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jcs", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jes", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jvs", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jns", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jzs", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jlt", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jle", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jcc", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jec", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jvc", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jnc", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jzc", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jge", 0 },
+  { 0x28, VSDSP_OP_CONTROL, "jgt", 0 },
+
+  { 0x20, VSDSP_OP_CONTROL, "jr", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrcs", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jres", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrvs", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrns", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrzs", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrlt", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrle", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrcc", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrec", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrvc", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrnc", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrzc", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrge", 0 },
+  { 0x20, VSDSP_OP_CONTROL, "jrgt", 0 },
+
+  { 0x22, VSDSP_OP_CONTROL, "jmpi", 0 },
+  { 0x2d, VSDSP_OP_CONTROL, "halt", 0 },
+  { 0x21, VSDSP_OP_CONTROL, "reti", 0 },
   
 };
 
@@ -146,4 +199,23 @@ const char alu_op[16][6] =
 {
   "a0", "a1", "b0", "b1", "c0", "c1", "d0", "d1",
   "null", "ones", "rsrvd", "p", "a", "b", "c", "d"
+};
+
+const struct target_cc_entry target_cc_codes[14] =
+{
+  { 0x01, "cs" },
+  { 0x02, "es" },
+  { 0x03, "vs" },
+  { 0x04, "ns" },
+  { 0x05, "zs" },
+  { 0x08, "lt" },
+  { 0x09, "le" },
+
+  { 0x11, "cc" },
+  { 0x12, "ec" },
+  { 0x13, "vc" },
+  { 0x14, "nc" },
+  { 0x15, "zc" },
+  { 0x18, "ge" },
+  { 0x19, "gt" },
 };

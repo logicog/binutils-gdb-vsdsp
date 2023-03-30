@@ -41,6 +41,7 @@ static unsigned char last_flags;
 static uint32_t last_iword;
 static htab_t opcode_hash_control;
 static htab_t treg_hash_control;
+static htab_t cc_hash_control;
 
 static char *
 parse_exp  (char *s, expressionS *op)
@@ -145,10 +146,12 @@ md_begin (void)
 {
   const vsdsp_opc_info_t *opcode;
   const struct target_reg_entry *treg;
+  const struct target_cc_entry *ccentry;
   int count;
 
   opcode_hash_control = str_htab_create ();
   treg_hash_control = str_htab_create ();
+  cc_hash_control = str_htab_create ();
 
   /* Insert memonics of the major opcodes into hash table.  */
   for (count = 0, opcode = vsdsp_opc_info; count++ < N_VSDSP_OPCODES; opcode++)
@@ -158,11 +161,76 @@ md_begin (void)
   for (count = 0, treg = target_regs; count++ < 64; treg++)
     str_hash_insert (treg_hash_control, treg->name, treg, 0);
 
+  /* Create hash table of control codes struct target_cc_entry target_cc_codes */
+  for (count = 0, ccentry = target_cc_codes; count++ < 14; ccentry++)
+    str_hash_insert (cc_hash_control, ccentry->name, ccentry, 0);
+
   last_flags = 0;
   last_output = NULL;
   last_iword = 0;
 
   bfd_set_arch_mach (stdoutput, TARGET_ARCH, 0);
+}
+
+struct move_op {
+  int regno;
+  bool is_indirect;
+  int post_mod;
+  int post_mod_type;
+  unsigned char post_mod_code;
+};
+
+static int
+read_move_op(char **s, struct move_op *op)
+{
+  const char *op_end;
+  char *str = *s;
+
+//  printf("%s A >%s<\n", __func__, str);
+  op->is_indirect = false;
+  op->post_mod_code = 0;
+  if (*str == '(')
+    {
+      op->is_indirect = true;
+      str++;
+    }
+  op->regno = parse_target_reg (&str);
+  str = skip_space (str);
+//  printf("%s A1 >%s<\n", __func__, str);
+  if (op->is_indirect)
+    {
+      if (*str++ != ')')
+	{
+	  as_bad (_("missing closing parenthesis"));
+	  ignore_rest_of_line ();
+	  return -1;
+	}
+    }
+//  printf("%s B >%s<\n", __func__, str);
+  op_end = str;
+  while (*op_end && *op_end != ','
+	 && *op_end != '-' && *op_end != '+' && !ISDIGIT(*op_end))
+    op_end++;
+//  printf("%s B1 op_end >%s<\n", __func__, op_end);
+  if (*op_end == '+' || *op_end == '-' || ISDIGIT(*op_end))
+    op->post_mod = strtol(str, &str, 10);
+  else
+    op->post_mod = 0;
+//  printf("%s C >%s<\n", __func__, str);
+  if (op->post_mod)
+    printf("%s offset is %d\n", __func__, op->post_mod);
+  if (op->post_mod < -7  || op->post_mod > 7)
+    {
+      as_bad (_("post modification is invalid"));
+      ignore_rest_of_line ();
+      return -1;
+    }
+  if (op->post_mod >= 0)
+    op->post_mod_code = op->post_mod;
+  else
+    op->post_mod_code = abs(op->post_mod) ^ 0xf + 1 ;
+  *s = str;
+  return 0;
 }
 
 /* This is the guts of the machine-dependent assembler.  STR points to
@@ -182,6 +250,9 @@ md_assemble (char *str)
   char pend;
   bool need_fix = false;
   expressionS exp;
+  struct move_op op1, op2;
+  struct target_cc_entry *condition;
+  char cc_code;
 
   /* Initialize the expression.  */
   exp.X_op = O_absent;
@@ -193,14 +264,14 @@ md_assemble (char *str)
 
   /* Find the op code end.  */
   op_start = str;
-  for (op_end = str;
-       *op_end && !is_end_of_line[*op_end & 0xff] && *op_end != ' ';
+  for (op_end = str; !is_end_of_line[*op_end & 0xff] && *op_end != ' ';
        op_end++)
     nlen++;
 
   pend = *op_end;
   *op_end = 0;
-
+  
+  printf("%s >>>>>>%s<<<<<<<\n", __func__, op_start);
   if (nlen == 0)
     as_bad (_("can't find opcode "));
 
@@ -240,6 +311,63 @@ md_assemble (char *str)
 	}
       break;
 
+    case VSDSP_OP_CONTROL:
+      printf("%s identified VSDSP_OP_CONTROL\n", __func__);
+      cc_code = 0;
+
+      switch (opcode->opcode)
+      {
+	case 0x20: // JRcc
+	  printf("%s identified JRcc\n", __func__);
+	  need_fix = false;
+	  op_start += 2;
+	  break;
+	case 0x21: // RETI
+	  need_fix = false;
+	  op_start += 4;
+	  break;
+	case 0x22: // JMPI
+	  need_fix = true;
+	  op_start += 4;
+	  break;
+	case 0x28: // Jcc
+	  need_fix = true;
+	  op_start += 1;
+	  break;
+	case 0x29: // CALLcc
+	  need_fix = true;
+	  op_start += 4;
+	  break;
+	case 0x2d: // HALT
+	  need_fix = false;
+	  op_start += 4;
+	  break;
+	default:
+	  as_bad (_("invalid control instruction "));
+	  return;
+      }
+      if (*op_start &&  ISALNUM (*op_start))
+	{
+	  pend = *(op_start + 2);
+	  *(op_start + 2) = '\0';
+	  condition = (struct target_cc_entry *) str_hash_find (cc_hash_control, op_start);
+	  *(op_start + 2) = pend;
+	  printf("%s identified CALL >%s<\n", __func__, op_start);
+	  if (!condition)
+	    {
+	      as_bad (_("invalid condition code "));
+	      return;
+	    }
+	  printf("%s identified CALL with condition %s\n", __func__, condition->name);
+	  cc_code = condition->code;
+	}
+      printf("%s need fix? %d %x\n", __func__, need_fix, opcode->opcode);
+      if (need_fix)
+	str = parse_exp (str, &exp);
+      str = skip_space (str);
+      iword = opcode->opcode << 24 | cc_code;
+      break;
+
     case VSDSP_OP_ADD:
     case VSDSP_OP_ADDC:
     case VSDSP_OP_MAC:
@@ -262,6 +390,13 @@ md_assemble (char *str)
 
     case VSDSP_OP_SINGLE:
       printf("%s flags: %x, last iword %08x\n", __func__, opcode->flags, last_iword);
+      // Is this a NOP?
+      if (opcode->opcode == 0xf4)
+      {
+	// For now we fill the parallel move slot with another NOP
+	iword = 0xf4000000 | PARALLEL_MV_NOP;
+	break;
+      }
       reg2 = parse_alu_reg (&str);
       str = skip_space (str + 1);
       reg = parse_alu_reg (&str);
@@ -277,18 +412,26 @@ md_assemble (char *str)
       printf("%s b iword %08x\n", __func__, iword);
       break;
 
-      /* mvx, mvy, stx/y/i, ldx/y/i which form only part of an instruction */
+      /* mvx, mvy, stx/y/i, ldx/y/i which can stand alone, be paired in a
+	 double move or just be a side-effect in a parallel move to an arithmetic operation */
       case VSDSP_OP_MOVE:
-	printf("%s last_flags: %x, last iword %08x\n", __func__, last_flags, last_iword);
+	if (read_move_op(&str, &op1))
+	  return;
+	str = skip_space (str + 1);
+	if (read_move_op(&str, &op2))
+	    return;
+
+	printf("%s In move, last_flags: %x, last iword %08x\n",
+	       __func__, last_flags, last_iword);
 	if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE) {
 	  iword = last_iword;
-	  reg = parse_target_reg (&str);
-	  str = skip_space (str + 1);
-	  reg2 = parse_target_reg (&str);
-	  printf("%s last_output: %08x reg %d, reg2 %d\n", __func__, iword, reg, reg2);
+	  printf("%s last_output: %08x reg %d, reg2 %d\n", __func__, iword, op1.regno, op2.regno);
 	  iword &= 0xfffe0000;
-	  iword |= opcode->opcode << 10 |  reg << 6 | reg2;
+	  iword |= opcode->opcode << 10 |  op1.regno << 6 | op2.regno;
 	  output = last_output;
+	} else if (! (last_flags & OP_ALLOWS_PMOVE)) {
+	  printf("%s starting standalone move\n", __func__);
+	  iword = DOUBLE_FULL_MOVES_OPCODE << 24;
 	}
 	break;
 
@@ -300,6 +443,7 @@ md_assemble (char *str)
   last_iword = iword;
   /* Was the current instruction squeezed into the previous one? */
   if (!output) {
+    printf("%s: One more FRAG\n", __func__);
     output = frag_more (4);
     last_flags = opcode->flags;
     last_output = output;

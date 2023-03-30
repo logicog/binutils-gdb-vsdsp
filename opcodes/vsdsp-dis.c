@@ -218,6 +218,15 @@ disassm_control(uint32_t c)
 	// printf("  in %s, actual op is %x\n", __func__, op);
 
 	switch (op) {
+	case 0x0: // JRcc
+		cond = c & 0x3f;
+		if (cond > 0x20) {
+			printf ("  JR RESERVED\n");
+			break;
+		}
+		fpr(stream, "JR%s\n", conditions[cond]);
+		break;
+
 	case 0xd: // HALT
 		fpr(stream, "HALT\n");
 		break;

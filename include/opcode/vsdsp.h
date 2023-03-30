@@ -68,10 +68,12 @@ struct target_reg_entry
 #define OP_IN_PMOVE 0x2
 #define OP_DOUBLE_MOVE 0x4
 
-#define N_VSDSP_OPCODES 32
+#define N_VSDSP_OPCODES 81
 
 /* A parallel NOP move (ldx (i0), NOP) to fill up the parallel part of an instruction */
 #define PARALLEL_MV_NOP 0x24
+/* Opcode in bits 28-32 for two double full moves */
+#define DOUBLE_FULL_MOVES_OPCODE 0x3
 
 typedef struct vsdsp_opc_info_t
 {
@@ -81,5 +83,12 @@ typedef struct vsdsp_opc_info_t
   unsigned char flags;
 } vsdsp_opc_info_t;
 
+struct target_cc_entry
+{
+  unsigned char code;
+  char name[3];
+};
+
 extern const struct target_reg_entry target_regs[64];
 extern const char alu_op[16][6];
+extern const struct target_cc_entry target_cc_codes[14];
