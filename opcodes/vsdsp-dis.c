@@ -84,13 +84,13 @@ disassm_pmove_fullx (uint32_t c, bool follows_op)
   if (c & (1 << 13))
     {
       if (follows_op)
-	fpr(stream, "&; ");
+	fpr (stream, "&; ");
       fpr (stream, "stx %s, (i%d)%s", target_regs[R].name, r, buf);
     }
   else if (R != 0x24 || full_ops)  // parallel load to NOP normally suppressed
     {
       if (follows_op)
-	fpr(stream, " &; ");
+	fpr (stream, " &; ");
       fpr (stream, "ldx (i%d)%s, %s", r, buf, target_regs[R].name);
     }
   else return 0;
@@ -113,14 +113,14 @@ disassm_pmove_fully(uint32_t c, bool follows_op)
   if (c & (1 << 13))
     {
       if (follows_op)
-	fpr(stream, " &; ");
-      fpr(stream, "sty %s, (i%d)%s", target_regs[R].name, r, buf);
+	fpr (stream, " &; ");
+      fpr (stream, "sty %s, (i%d)%s", target_regs[R].name, r, buf);
     }
   else if (R != 0x24 || full_ops)  // parallel load to NOP normally suppressed
     {
       if (follows_op)
-	fpr(stream, " &; ");
-      fpr(stream, "ldy (i%d)%s, %s", r, buf, target_regs[R].name);
+	fpr (stream, " &; ");
+      fpr (stream, "ldy (i%d)%s, %s", r, buf, target_regs[R].name);
     }
   else return 0;
 
@@ -141,8 +141,8 @@ disassm_pmove_long(uint32_t c, bool follows_op)
   if (! (op & 0xc))
     {
       if (follows_op)
-	fpr(stream, " &; ");
-      fpr(stream, "mv %s, %s", target_regs[s].name, target_regs[d].name);
+	fpr (stream, " &; ");
+      fpr (stream, "mv %s, %s", target_regs[s].name, target_regs[d].name);
     } else {
       s = (c >> 9) & 1;
       r = (c >> 6) & 0x7;
@@ -152,28 +152,28 @@ disassm_pmove_long(uint32_t c, bool follows_op)
 	  R = c & 0x3f;
 	  if (s)
 	    {
-	      fpr(stream, "sty %s, (i%d)", target_regs[R].name, r);
+	      fpr (stream, "sty %s, (i%d)", target_regs[R].name, r);
 	    }
 	  else if (R != 0x24 || full_ops)
 	    {
 	      if (follows_op)
-		fpr(stream, " &; ");
-	      fpr(stream, "ldy (i%d), %s", r, target_regs[R].name);
+		fpr (stream, " &; ");
+	      fpr (stream, "ldy (i%d), %s", r, target_regs[R].name);
 	    }
 	  break;
 	case 1: // I-bus move
 	  p = (c >> 2) & 0xf;
 	  R = c & 3;
 	  if (follows_op)
-	    fpr(stream, " &; ");
+	    fpr (stream, " &; ");
 	  post_mod(p, buf);
 	  if (!s)
-	    fpr(stream, "ldi (I%d) %s, %c\n", r, buf, 'A' + R);
+	    fpr (stream, "ldi (I%d)%s, %c", r, buf, 'A' + R);
 	  else
-	    fpr(stream, "sti %c, (I%d) %s\n", 'A' + R, r, buf);
+	    fpr (stream, "sti %c, (I%d)%s", 'A' + R, r, buf);
 	  break;
 	default:
-	  printf("RESERVED\n");
+	  fpr (stream, "RESERVED");
 	}
     }
   return 1;
@@ -186,16 +186,17 @@ disassm_pmove_short(uint32_t c, bool follows_op)
 {
   char buf[] = "\0\0";
   uint8_t R, p, r;
+  bool need_separator = true;
 
-//  printf("%s called\n", __func__);
+  if (follows_op)
+    fpr (stream, " &; ");
+
   if (!(c & (1 << 16)))
     {
-      printf("%s  RESERVED\n", __func__);
+      fpr (stream, "  RESERVED");
       return -1;
     }
 
-  if (follows_op)
-    fpr(stream, " &; ");
   c = c & 0x1ffff;
   R = (c >> 8) & 0x7;
   p = (c >> 11) & 0x1;
@@ -203,19 +204,24 @@ disassm_pmove_short(uint32_t c, bool follows_op)
 
   buf[0] = p ? '*' : '\0';
   if (c & (1 << 15))
-    fpr(stream, "stx %s, (i%d)%s", target_regs[R].name, r, buf);
+    fpr (stream, "stx %s, (i%d)%s", target_regs[R].name, r, buf);
+  else if (R != 0x24 || full_ops)
+    fpr (stream, "ldx (i%d)%s, %s", r, buf, target_regs[R].name);
   else
-    fpr(stream, "ldx (i%d)%s, %s", r, buf, target_regs[R].name);
+    need_separator = false;
 
   R = c & 0x7;
   p = (c >> 3) & 0x1;
   r = (c >> 4) & 0x7;
 
+  if (need_separator)
+    fpr (stream, " &; ");
+
   buf[0] = p ? '*' : '\0';
   if (c & (1 << 15))
-    fpr(stream, "sty %s, (i%d)%s", target_regs[R].name, r, buf);
+    fpr (stream, "sty %s, (i%d)%s", target_regs[R].name, r, buf);
   else if (R != 0x24 || full_ops)  // parallel load to NOP normally suppressed
-    fpr(stream, "ldy (i%d)%s, %s", r, buf, target_regs[R].name);
+    fpr (stream, "ldy (i%d)%s, %s", r, buf, target_regs[R].name);
 
   return 0;
 }
@@ -247,12 +253,16 @@ disassm_ldc (uint32_t c, struct disassemble_info *info)
   // printf("in %s:\n", __func__);
   if (op1 == 0x24 && !full_ops)
     {
-      fpr(stream, "nop");
+      fpr (stream, "nop");
       return 1;
     }
-  fpr(stream, "ldc ");
-  (*info->print_address_func) (constant, info);
-  fpr(stream, ", %s", target_regs[op1].name);
+  fpr (stream, "ldc ");
+  /*  iX and le, ls, iprX, lrX registers use addresses */
+  if ((op1 > 0xd && op1 < 0x18) || op1 >= 0x3e || op1 == 0x8 || op1 == 0x9)
+    (*info->print_address_func) (constant, info);
+  else
+    fpr (stream, "%d", constant);
+  fpr (stream, ", %s", target_regs[op1].name);
 
   return 0;
 }
@@ -269,7 +279,6 @@ static int
 disassm_control (uint32_t c, struct disassemble_info *info)
 {
   uint8_t m, r, op = (c >> 24) & 0xf, R, cond;
-  uint8_t count;
   uint32_t addr;
 
   // printf("  in %s, actual op is %x\n", __func__, op);
@@ -277,30 +286,30 @@ disassm_control (uint32_t c, struct disassemble_info *info)
   switch (op)
     {
     case 0xd: // HALT
-      fpr(stream, "halt");
+      fpr (stream, "halt");
       break;
 
     case 0xb: // Double Move (MVX/MVY)
       r = (c >> 18) & 0x3f;
       R = (c >> 12) & 0x3f;
-      fpr(stream, "mvx %s, %s &; ", target_regs[r].name, target_regs[R].name);
+      fpr (stream, "mvx %s, %s &; ", target_regs[r].name, target_regs[R].name);
       r = (c >> 6) & 0x3f;
       R = c & 0x3f;
-      fpr(stream, "mvy %s, %s", target_regs[R].name, target_regs[R].name);
+      fpr (stream, "mvy %s, %s", target_regs[R].name, target_regs[R].name);
       break;
 
     case 0xa: // JMPI
       addr = (c >> 6) & 0xffff;
       r = c & 0x7;
       m = c >> 3 & 0x3;
-      fpr(stream, "jmpi ");
+      fpr (stream, "jmpi ");
       (*info->print_address_func) (addr, info);
       if (m == 1)
-	fpr(stream, ", (i%d) + %d", r, m);
+	fpr (stream, ", (i%d) + %d", r, m);
       else if (m == 0)
-	fpr(stream, ", (i%d)", r);
+	fpr (stream, ", (i%d)", r);
       else
-	fpr(stream, ", (i%d) - %d", r, m);
+	fpr (stream, ", (i%d) - %d", r, m);
       break;
 
     case 0x9: // CALLcc
@@ -311,7 +320,7 @@ disassm_control (uint32_t c, struct disassemble_info *info)
 	  break;
 	}
       addr = (c >> 6) & 0xffff;
-      fpr(stream, "call%s ", conditions[cond]);
+      fpr (stream, "call%s ", conditions[cond]);
       (*info->print_address_func) (addr, info);
       break;
 
@@ -319,11 +328,11 @@ disassm_control (uint32_t c, struct disassemble_info *info)
       cond = c & 0x3f;
       if (cond > 0x20)
 	{
-	  printf ("J RESERVED");
+	  fpr (stream, "J RESERVED");
 	  break;
 	}
       addr = (c >> 6) & 0xffff;
-      fpr(stream, "j%s ", conditions[cond]);
+      fpr (stream, "j%s ", conditions[cond]);
       (*info->print_address_func) (addr, info);
       break;
 
@@ -331,27 +340,27 @@ disassm_control (uint32_t c, struct disassemble_info *info)
     case 0x5: // LOOP
     case 0x6: // LOOP
     case 0x7: // LOOP
-      count = c & 0x1f;
+      r = c & 0x1f;
       addr = (c >> 6) & 0xffff;
-      fpr(stream, "loop %d, ", count);
+      fpr (stream, "loop %s, ", target_regs[r].name);
       (*info->print_address_func) (addr, info);
       break;
 
     case 0x2: // RESP
       r = (c >> 17) & 0x7;
       R = (c >> 20) & 0x7;
-      fpr(stream, "resp %s, %s", alu_op[r], alu_op[R]);
+      fpr (stream, "resp %s, %s", alu_op[r], alu_op[R]);
       break;
 
     case 0x1: // RETI
       if (c & (1 << 23))
 	{
 	  r = (c >> 6) & 0x7;
-	  fpr(stream, "reti i%d", r);
+	  fpr (stream, "reti (i%d)", r);
 	}
       else
 	{
-	  fpr(stream, "reti");
+	  fpr (stream, "reti");
 	}
       break;
 
@@ -365,13 +374,13 @@ disassm_control (uint32_t c, struct disassemble_info *info)
 	  break;
 	}
       if (c & (1 << 23))
-	fpr(stream, "jr%s (i%d)", conditions[cond], r);
+	fpr (stream, "jr%s (i%d)", conditions[cond], r);
       else
-	fpr(stream, "jr%s ", conditions[cond]);
+	fpr (stream, "jr%s ", conditions[cond]);
       break;
 
     default:
-      fpr(stream, "RESERVED");
+      fpr (stream, "RESERVED");
     }
   return 0;
 }
@@ -383,7 +392,7 @@ disassm_dmove (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
   count += disassm_pmove_fully(c, count);
 
   if (!count)
-    fpr(stream, "nop");
+    fpr (stream, "nop");
 
   return 0;
 }
@@ -399,9 +408,9 @@ two_op_arithmetic (char *op, uint32_t c)
 
   // Is this a 40 bit operation, because one op is 40 bits?
   if (r > 9 || R > 9) // Registers P, A, B, C, D are 40 bits
-    fpr(stream, "%s %s, %s, %c", op,  alu_op[R], alu_op[r], alu_op[A][0]);
+    fpr (stream, "%s %s, %s, %c", op,  alu_op[R], alu_op[r], alu_op[A][0]);
   else
-    fpr(stream, "%s %s, %s, %s", op, alu_op[R], alu_op[r], alu_op[A]);
+    fpr (stream, "%s %s, %s, %s", op, alu_op[R], alu_op[r], alu_op[A]);
 
   decode_pmove(c & 0x1ffff, true);
 
@@ -511,46 +520,46 @@ disassm_single (uint32_t c, struct disassemble_info *info ATTRIBUTE_UNUSED)
   switch(op)
     {
     case 0x0:
-      fpr(stream, "abs %s, %s", alu_op[r], alu_op[A]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "abs %s, %s", alu_op[r], alu_op[A]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     case 0x1:
-      fpr(stream, "asr %s, %s", alu_op[r], alu_op[A]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "asr %s, %s", alu_op[r], alu_op[A]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     case 0x2: // Logical Shift Right
-      fpr(stream, "lsr %s, %s", alu_op[r], alu_op[A]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "lsr %s, %s", alu_op[r], alu_op[A]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     case 0x3: // Logical shift right with Carry
-      fpr(stream, "lsrc %s, %s", alu_op[r], alu_op[A]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "lsrc %s, %s", alu_op[r], alu_op[A]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     case 0x4: // NOP
-      if (!decode_pmove(c & 0x1ffff, false))
-	fpr(stream, "nop");
+      if (!decode_pmove (c & 0x1ffff, false))
+	fpr (stream, "nop");
       break;
     case 0x5:
-      fpr(stream, "exp %s, %s", alu_op[r], alu_op[A]);
+      fpr (stream, "exp %s, %s", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff, true);
       break;
     case 0x6: // Saturate 40 bit to 32 bits, setting overflow flag
-      fpr(stream, "sat %s, %s", alu_op[r], alu_op[A]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "sat %s, %s", alu_op[r], alu_op[A]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     case 0x7: // Round and saturate
-      fpr(stream, "rnd %s, %s", alu_op[r], alu_op[A]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "rnd %s, %s", alu_op[r], alu_op[A]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     case 0xe:
     case 0xf:
       r = (c >> 17) & 0x7;
       R = (c >> 20) & 0x7;
-      fpr(stream, "mul%s %s, %s", data_format[(c >> 23) & 0x3], alu_op[r], alu_op[R]);
-      decode_pmove(c & 0x1ffff, true);
+      fpr (stream, "mul%s %s, %s", data_format[(c >> 23) & 0x3], alu_op[r], alu_op[R]);
+      decode_pmove (c & 0x1ffff, true);
       break;
     default:
-      printf("in %s RESERVED\n", __func__);
+      fpr (stream, "RESERVED");
     }
 
   return 0;
@@ -571,6 +580,11 @@ print_insn_vsdsp (bfd_vma addr, struct disassemble_info *info)
   bfd_byte buffer[4];
   uint32_t iword;
 
+//  printf("%s called\n", __func__);
+  info->bytes_per_line = 4;
+  if (info->octets_per_byte == 2)
+    info->bytes_per_line = 2;
+  info->bytes_per_chunk = 1;
   if (info->disassembler_options)
     {
       parse_disassembler_options (info->disassembler_options);
