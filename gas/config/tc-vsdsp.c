@@ -34,6 +34,87 @@ const char line_comment_chars[]   = "#";
 
 static int pending_reloc;
 static htab_t opcode_hash_control;
+static htab_t treg_hash_control;
+
+static char *
+parse_exp  (char *s, expressionS *op)
+{
+  char *save = input_line_pointer;
+
+  input_line_pointer = s;
+  expression (op);
+  s = input_line_pointer;
+  input_line_pointer = save;
+  return s;
+}
+
+static inline char *
+skip_space (char *s)
+{
+  while (*s == ' ' || *s == '\t')
+    ++s;
+
+  return s;
+}
+
+/* Parse a register used as target in a load/store operation
+ */
+static int
+parse_target_reg (char **sptr)
+{
+  char *s = skip_space (*sptr);
+  char buf[10];
+  struct target_reg_entry *treg;
+  int cnt;
+
+  cnt = 0;
+  memset (buf, '\0', 10);
+  while ((ISALNUM (*s)) && cnt < 10)
+    buf[cnt++] = TOLOWER (*s++);
+
+  treg = (struct target_reg_entry *) str_hash_find (treg_hash_control, buf);
+
+  if (treg == NULL)
+    {
+      as_bad (_("unknown target register %s"), buf);
+      return -1;
+    }
+
+  return treg->code;
+}
+
+/* Parse a register used in an arithmetic operation, they are:
+ * a0, a1, b0, b1, c0, c1, d0, d1,
+ * null, ones, rsrvd, p, a, b, c, d
+ */
+static int
+parse_alu_reg (char **sptr)
+{
+  char *s = skip_space (*sptr);
+  char buf[8];
+  int cnt;
+  int l, r;
+
+  cnt = 0;
+  memset (buf, '\0', 8);
+  while ((ISALNUM (*s)) && cnt < 8)
+    buf[cnt++] = TOLOWER (*s++);
+
+  // Optimize search span based on the length of the register names
+  l = cnt < 2 ? 11 : 0;
+  r = cnt != 2 ? 16 : 8;
+  do
+    {
+      int ans = strcmp (buf, alu_op[l]);
+
+      if (ans)
+	  return l;
+      l++;
+    }
+  while (l < r);
+
+  return -1;
+}
 
 const pseudo_typeS md_pseudo_table[] =
 {
@@ -64,12 +145,20 @@ void
 md_begin (void)
 {
   const vsdsp_opc_info_t *opcode;
-  opcode_hash_control = str_htab_create ();
+  const struct target_reg_entry *treg;
+  int count;
 
-  /* Insert names into hash table.  */
-  for (opcode = vsdsp_opc_info; opcode->name; opcode++)
+  opcode_hash_control = str_htab_create ();
+  treg_hash_control = str_htab_create ();
+
+  /* Insert memonics of the major opcodes into hash table.  */
+  for (count = 0, opcode = vsdsp_opc_info; count++ < 12; opcode++)
     str_hash_insert (opcode_hash_control, opcode->name, opcode, 0);
 
+  /* Create hash table of target register names */
+  for (count = 0, treg = target_regs; count++ < 64; treg++)
+    str_hash_insert (treg_hash_control, treg->name, treg, 0);
+  
   bfd_set_arch_mach (stdoutput, TARGET_ARCH, 0);
 }
 
@@ -86,13 +175,17 @@ md_assemble (char *str)
   vsdsp_opc_info_t *opcode;
   char *output;
   int idx = 0;
+  int reg;
   char pend;
+  expressionS exp;
+
+  /* Initialize the expression.  */
+  exp.X_op = O_absent;
 
   int nlen = 0;
 
   /* Drop leading whitespace.  */
-  while (*str == ' ')
-    str++;
+  str = skip_space (str);
 
   /* Find the op code end.  */
   op_start = str;
@@ -116,12 +209,39 @@ md_assemble (char *str)
       return;
     }
 
-  output = frag_more (1);
+  output = frag_more (4);
   output[idx++] = opcode->opcode;
+  printf("USING opcode %x %s\n", opcode->opcode, opcode->name);
   
   while (ISSPACE (*op_end))
     op_end++;
-    
+  
+  switch (opcode->itype)
+    {
+    case VSDSP_OP_LDC:		// ldc value, reg
+      str = op_end;
+      printf("%s: Looking at LDC, str >%s<\n", __func__, str);
+      str = parse_exp (str, &exp);
+      printf("%s a >%s<\n", __func__, str);
+      str = skip_space (str);
+      printf("%s b >%s<\n", __func__, str);
+      if (exp.X_op != O_absent && *str == ',')
+	{
+	  int immediate = exp.X_add_number;
+
+	  str = skip_space (str + 1);
+	  reg = parse_target_reg (&str);
+	  printf("%s: Got immediate %d, target register is %d\n", __func__, immediate, reg);
+	}
+      break;
+    case VSDSP_OP_ADD:
+      reg = parse_alu_reg (&str);
+      printf("%s: Got alu register %d\n", __func__, reg);
+      break;
+    default:
+      printf("%s reserved\n", __func__);
+    }
+  
   if (*op_end != 0)
     as_warn ("extra stuff on line ignored");
    
