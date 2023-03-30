@@ -22,22 +22,46 @@
 #include "sysdep.h"
 #include "opcode/vsdsp.h"
 
-const vsdsp_opc_info_t vsdsp_opc_info[12] =
+const vsdsp_opc_info_t vsdsp_opc_info[32] =
 {
-  { 0x00, VSDSP_OP_LDC, "ldc" },
-  { 0x01, VSDSP_OP_LDC, "ldc" },
-  { 0x02, VSDSP_OP_ADD, "add" },
-  { 0x03, VSDSP_OP_MAC, "mac" },
-  { 0x04, VSDSP_OP_SUB, "sub" },
-  { 0x05, VSDSP_OP_MSU, "msu" },
-  { 0x06, VSDSP_OP_ADDC, "addc" },
-  { 0x07, VSDSP_OP_SUBC, "subc" },
-  { 0x08, VSDSP_OP_ASLH, "aslh" },
-  { 0x09, VSDSP_OP_AND, "and" },
-  { 0x0a, VSDSP_OP_OR, "or" },
-  { 0x0b, VSDSP_OP_XOR, "xor" }
+  { 0x00, VSDSP_OP_LDC, "ldc", 0 },
+  { 0x01, VSDSP_OP_LDC, "ldc", 0 },
+  { 0x02, VSDSP_OP_ADD, "add", OP_ALLOWS_PMOVE },
+  { 0x03, VSDSP_OP_MAC, "mac", OP_ALLOWS_PMOVE },
+  { 0x04, VSDSP_OP_SUB, "sub", OP_ALLOWS_PMOVE },
+  { 0x05, VSDSP_OP_MSU, "msu", OP_ALLOWS_PMOVE },
+  { 0x06, VSDSP_OP_ADDC, "addc", OP_ALLOWS_PMOVE },
+  { 0x07, VSDSP_OP_SUBC, "subc", OP_ALLOWS_PMOVE },
+  { 0x08, VSDSP_OP_ASLH, "aslh", OP_ALLOWS_PMOVE },
+  { 0x09, VSDSP_OP_AND, "and", OP_ALLOWS_PMOVE },
+  { 0x0a, VSDSP_OP_OR, "or", OP_ALLOWS_PMOVE },
+  { 0x0b, VSDSP_OP_XOR, "xor", OP_ALLOWS_PMOVE },
+
+  { 0xf0, VSDSP_OP_SINGLE, "abs", OP_ALLOWS_PMOVE },
+  { 0xf1, VSDSP_OP_SINGLE, "asr", OP_ALLOWS_PMOVE },
+  { 0xf2, VSDSP_OP_SINGLE, "lsr", OP_ALLOWS_PMOVE },
+  { 0xf3, VSDSP_OP_SINGLE, "lsrc", OP_ALLOWS_PMOVE },
+  { 0xf4, VSDSP_OP_SINGLE, "nop", OP_ALLOWS_PMOVE },
+  { 0xf5, VSDSP_OP_SINGLE, "exp", OP_ALLOWS_PMOVE },
+  { 0xf6, VSDSP_OP_SINGLE, "sat", OP_ALLOWS_PMOVE },
+  { 0xf7, VSDSP_OP_SINGLE, "rnd", OP_ALLOWS_PMOVE },
+  { 0xfe, VSDSP_OP_SINGLE, "mulsu", OP_ALLOWS_PMOVE },
+  { 0xff, VSDSP_OP_SINGLE, "muluu", OP_ALLOWS_PMOVE },
+  { 0xfe, VSDSP_OP_SINGLE, "mulss", OP_ALLOWS_PMOVE },
+  { 0xff, VSDSP_OP_SINGLE, "mulus", OP_ALLOWS_PMOVE },
+  
+  { 0x14, VSDSP_OP_MOVE, "ldx", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+  { 0x14, VSDSP_OP_MOVE, "stx", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+  { 0x14, VSDSP_OP_MOVE, "ldy", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+  { 0x14, VSDSP_OP_MOVE, "sty", OP_IN_PMOVE | OP_DOUBLE_MOVE  },
+  { 0x15, VSDSP_OP_MOVE, "ldi", OP_IN_PMOVE },
+  { 0x15, VSDSP_OP_MOVE, "sti", OP_IN_PMOVE },
+  { 0x10, VSDSP_OP_MOVE, "mvx", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+  { 0x10, VSDSP_OP_MOVE, "mvy", OP_IN_PMOVE | OP_DOUBLE_MOVE },
+  
 };
 
+// lsl, lslc, and, nop ???
 
 /* List of target registers for moves, load and store
  * operations: mvx/mvy, ldx/ldy, stx/sty, ldc

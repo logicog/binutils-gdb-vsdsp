@@ -32,7 +32,13 @@ const char comment_chars[]        = "#";
 const char line_separator_chars[] = ";";
 const char line_comment_chars[]   = "#";
 
+const char EXP_CHARS[] = "eE";
+const char FLT_CHARS[] = "rRsSfFdDxXeE";
+
 static int pending_reloc;
+static char *last_output;
+static unsigned char last_flags;
+static uint32_t last_iword;
 static htab_t opcode_hash_control;
 static htab_t treg_hash_control;
 
@@ -80,6 +86,7 @@ parse_target_reg (char **sptr)
       return -1;
     }
 
+  *sptr = s;
   return treg->code;
 }
 
@@ -107,8 +114,10 @@ parse_alu_reg (char **sptr)
     {
       int ans = strcmp (buf, alu_op[l]);
 
-      if (ans)
+      if (ans) {
+	  *sptr = s;
 	  return l;
+      }
       l++;
     }
   while (l < r);
@@ -120,16 +129,6 @@ const pseudo_typeS md_pseudo_table[] =
 {
   {0, 0, 0}
 };
-
-const char FLT_CHARS[] = "rRsSfFdDxXpP";
-const char EXP_CHARS[] = "eE";
-
-void
-md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED, segT sec ATTRIBUTE_UNUSED,
-                 fragS *fragP ATTRIBUTE_UNUSED)
-{
-  as_fatal (_("convert_frag\n"));
-}
 
 void
 md_operand (expressionS *op __attribute__((unused)))
@@ -152,13 +151,17 @@ md_begin (void)
   treg_hash_control = str_htab_create ();
 
   /* Insert memonics of the major opcodes into hash table.  */
-  for (count = 0, opcode = vsdsp_opc_info; count++ < 12; opcode++)
+  for (count = 0, opcode = vsdsp_opc_info; count++ < 32; opcode++)
     str_hash_insert (opcode_hash_control, opcode->name, opcode, 0);
 
   /* Create hash table of target register names */
   for (count = 0, treg = target_regs; count++ < 64; treg++)
     str_hash_insert (treg_hash_control, treg->name, treg, 0);
-  
+
+  last_flags = 0;
+  last_output = NULL;
+  last_iword = 0;
+
   bfd_set_arch_mach (stdoutput, TARGET_ARCH, 0);
 }
 
@@ -173,9 +176,9 @@ md_assemble (char *str)
   char *op_end;
 
   vsdsp_opc_info_t *opcode;
-  char *output;
-  int idx = 0;
-  int reg;
+  char *output = 0;
+  uint32_t iword = 0;
+  int reg, reg2;
   char pend;
   expressionS exp;
 
@@ -209,17 +212,15 @@ md_assemble (char *str)
       return;
     }
 
-  output = frag_more (4);
-  output[idx++] = opcode->opcode;
   printf("USING opcode %x %s\n", opcode->opcode, opcode->name);
   
   while (ISSPACE (*op_end))
     op_end++;
+  str = op_end;
   
   switch (opcode->itype)
     {
     case VSDSP_OP_LDC:		// ldc value, reg
-      str = op_end;
       printf("%s: Looking at LDC, str >%s<\n", __func__, str);
       str = parse_exp (str, &exp);
       printf("%s a >%s<\n", __func__, str);
@@ -231,20 +232,69 @@ md_assemble (char *str)
 
 	  str = skip_space (str + 1);
 	  reg = parse_target_reg (&str);
+	  printf("%s c >%s<\n", __func__, str);
+	  if (reg < 0) {
+	    as_bad (_("not a valid target register "));
+	    return;
+	  }
+	  iword = opcode->opcode << 28 | (immediate & 0xffff) << 6 | reg;
+	    
 	  printf("%s: Got immediate %d, target register is %d\n", __func__, immediate, reg);
 	}
       break;
+
     case VSDSP_OP_ADD:
       reg = parse_alu_reg (&str);
       printf("%s: Got alu register %d\n", __func__, reg);
       break;
+
+    case VSDSP_OP_SINGLE:
+      printf("%s a >%s<\n", __func__, str);
+      reg2 = parse_alu_reg (&str);
+      printf("%s b >%s<\n", __func__, str);
+      str = skip_space (str + 1);
+      printf("%s c >%s<\n", __func__, str);
+      reg = parse_alu_reg (&str);
+      printf("%s d >%s<\n", __func__, str);
+      if (reg >= 8 )
+	{
+	  as_bad (_("not a valid target register "));
+	  return;
+	}
+      iword = opcode->opcode << 24 | reg2 << 20 | reg << 17;
+      break;
+      /* mvx, mvy, stx/y/i, ldx/y/i which form only part of an instruction */
+
+      case VSDSP_OP_MOVE:
+	printf("%s last_flags: %x, last iword %08x\n", __func__, last_flags, last_iword);
+	if (last_flags & OP_ALLOWS_PMOVE && opcode->flags & OP_IN_PMOVE) {
+	  iword = last_iword;
+	  reg = parse_target_reg (&str);
+	  str = skip_space (str + 1);
+	  reg2 = parse_target_reg (&str);
+	  printf("%s last_output: %08x reg %d, reg2 %d\n", __func__, iword, reg, reg2);
+	  iword &= 0xfffe0000;
+	  iword |= opcode->opcode << 10 |  reg << 6 | reg2;
+	  output = last_output;
+	}
+	break;
+
     default:
       printf("%s reserved\n", __func__);
     }
   
-  if (*op_end != 0)
+  printf("%s final iword %08x\n", __func__, iword);
+  last_iword = iword;
+  if (!output) {
+    output = frag_more (4);
+    last_flags = opcode->flags;
+    last_output = output;
+  }
+  md_number_to_chars (output, iword, 4);
+
+  if (*str != 0)
     as_warn ("extra stuff on line ignored");
-   
+  
   if (pending_reloc)
     as_bad ("Something forgot to clean up\n");
 }
@@ -327,6 +377,14 @@ void
 md_number_to_chars (char *ptr, valueT use, int nbytes)
 {
   number_to_chars_bigendian (ptr, use, nbytes);
+}
+
+void
+md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED,
+                 segT sec ATTRIBUTE_UNUSED,
+                 fragS *fragP ATTRIBUTE_UNUSED)
+{
+  abort();
 }
 
 /* Translate internal representation of relocation info to BFD target

@@ -43,7 +43,7 @@ typedef enum
 {
   VSDSP_OP_LDC = 1,
   VSDSP_OP_CONTROL,
-  VSDSP_OP_DMOVE,
+  VSDSP_OP_MOVE,
   VSDSP_OP_ADD,
   VSDSP_OP_MAC,
   VSDSP_OP_SUB,
@@ -64,12 +64,16 @@ struct target_reg_entry
   char name[6];
 };
 
+#define OP_ALLOWS_PMOVE 0x1
+#define OP_IN_PMOVE 0x2
+#define OP_DOUBLE_MOVE 0x4
 
 typedef struct vsdsp_opc_info_t
 {
   unsigned char opcode;
   vsdsp_op_major itype;
   const char *name;
+  unsigned char flags;
 } vsdsp_opc_info_t;
 
 extern const struct target_reg_entry target_regs[64];

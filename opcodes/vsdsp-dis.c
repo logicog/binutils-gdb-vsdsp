@@ -410,19 +410,19 @@ disassm_single(uint32_t c)
   switch(op)
     {
     case 0x0:
-      fpr(stream, "ABS %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "abs %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0x1:
-      fpr(stream, "ASR %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "asr %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0x2: // Logical Shift Right
-      fpr(stream, "LSR %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "lsr %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0x3: // Logical shift right with Carry
-      fpr(stream, "LSRC %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "lsrc %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0x4:
@@ -430,22 +430,22 @@ disassm_single(uint32_t c)
       decode_pmove(c & 0x1ffff);
       break;
     case 0x5:
-      fpr(stream, "EXP %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "exp %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0x6: // Saturate 40 bit to 32 bits, setting overflow flag
-      fpr(stream, "SAT %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "sat %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0x7: // Round and saturate
-      fpr(stream, "RND %s, %s;", alu_op[r], alu_op[A]);
+      fpr(stream, "rnd %s, %s; ", alu_op[r], alu_op[A]);
       decode_pmove(c & 0x1ffff);
       break;
     case 0xe:
     case 0xf:
       r = (c >> 17) & 0x7;
       R = (c >> 20) & 0x7;
-      fpr(stream, "MUL%s %s, %s;", data_format[(c >> 23) & 0x3], alu_op[r], alu_op[R]);
+      fpr(stream, "mul%s %s, %s; ", data_format[(c >> 23) & 0x3], alu_op[r], alu_op[R]);
       decode_pmove(c & 0x1ffff);
       break;
     default:

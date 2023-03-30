@@ -520,6 +520,7 @@ disassembler (enum bfd_architecture a,
 #endif
 #ifdef ARCH_vsdsp
     case bfd_arch_vsdsp:
+      printf("SETTING print_insn_vsdsp\n");
       disassemble = print_insn_vsdsp;
       break;
 #endif
