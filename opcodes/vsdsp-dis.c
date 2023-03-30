@@ -249,10 +249,10 @@ disassm_ldc(uint32_t c)
 
 static char conditions[32][3] =
 {
-  "", "CS", "ES", "VS", "NS", "ZS", "RV", "RV",
-  "LT", "LE", "RV", "RV", "RV","RV", "RV", "RV",
-  "RV", "CC", "EC", "VC", "NC", "ZC", "RV", "RV",
-  "GE", "GT", "RV", "RV", "RV","RV", "RV", "RV"
+  "", "cs", "es", "vs", "ns", "zs", "RV", "RV",
+  "lt", "le", "RV", "RV", "RV","RV", "RV", "RV",
+  "RV", "cc", "ec", "vc", "nc", "zc", "RV", "RV",
+  "ge", "gt", "RV", "RV", "RV", "RV", "RV", "RV"
 };
 
 static int
@@ -269,7 +269,7 @@ disassm_control(uint32_t c)
       cond = c & 0x3f;
       if (cond > 0x20)
 	{
-	  printf ("  jr RESERVED");
+	  printf ("jr RESERVED");
 	  break;
 	}
       fpr(stream, "jr%s", conditions[cond]);
@@ -283,18 +283,18 @@ disassm_control(uint32_t c)
       r = c & 0x7;
       m = c >> 3 & 0x3;
       if (m == 1)
-	fpr(stream, "jmpi %04x, (I%d) + %d", addr, r, m);
+	fpr(stream, "jmpi %04x, (i%d) + %d", addr, r, m);
       else if (m == 0)
-	fpr(stream, "jmpi %04x, (I%d)", addr, r);
+	fpr(stream, "jmpi %04x, (i%d)", addr, r);
       else
-	fpr(stream, "jmpi %04x, (I%d) - %d", addr, r, m);
+	fpr(stream, "jmpi %04x, (i%d) - %d", addr, r, m);
       break;
 
     case 0x9: // CALLcc
       cond = c & 0x3f;
       if (cond > 0x20)
 	{
-	  printf ("  CALL RESERVED");
+	  printf ("CALL RESERVED");
 	  break;
 	}
       addr = (c >> 6) & 0xffff;
@@ -305,7 +305,7 @@ disassm_control(uint32_t c)
       cond = c & 0x3f;
       if (cond > 0x20)
 	{
-	  printf ("  j RESERVED");
+	  printf ("J RESERVED");
 	  break;
 	}
 	addr = (c >> 6) & 0xffff;
@@ -322,7 +322,7 @@ disassm_control(uint32_t c)
       if (c & (1 << 23))
 	{
 	  r = (c >> 6) & 0x7;
-	  fpr(stream, "reti I%d", r);
+	  fpr(stream, "reti i%d", r);
 	}
       else
 	{
