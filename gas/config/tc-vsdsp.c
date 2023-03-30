@@ -180,6 +180,7 @@ md_assemble (char *str)
   uint32_t iword = 0;
   int reg, reg2, A;
   char pend;
+  bool need_fix = false;
   expressionS exp;
 
   /* Initialize the expression.  */
@@ -234,8 +235,8 @@ md_assemble (char *str)
 	    return;
 	  }
 	  iword = opcode->opcode << 28 | (immediate & 0xffff) << 6 | reg;
-	    
 	  printf("%s: Got immediate %d, target register is %d\n", __func__, immediate, reg);
+	  need_fix = true;
 	}
       break;
 
@@ -303,8 +304,18 @@ md_assemble (char *str)
     last_flags = opcode->flags;
     last_output = output;
   }
+  printf("%s storing %08x\n", __func__, iword);
   md_number_to_chars (output, iword, 4);
 
+  if (need_fix) {
+    printf("%s NEED FIX output %016lx literal: %016lx\n", __func__, (intptr_t)output, (intptr_t)frag_now->fr_literal);
+	fix_new_exp (frag_now,
+		     (output - frag_now->fr_literal),
+		     4,
+		     &exp,
+		     0,
+		     BFD_RELOC_16);
+  }
   if (*str != 0)
     as_warn ("extra stuff on line ignored");
   
@@ -379,9 +390,39 @@ md_show_usage (FILE *stream ATTRIBUTE_UNUSED)
 /* Apply a fixup to the object file.  */
 
 void
-md_apply_fix (fixS *fixP ATTRIBUTE_UNUSED, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNUSED)
+md_apply_fix (fixS *fixP, valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNUSED)
 {
-  /* Empty for now.  */
+  char *buf = fixP->fx_where + fixP->fx_frag->fr_literal;
+  uint32_t val = *valP;
+  uint32_t max, min;
+  uint32_t op = 0;
+
+  printf("%s applying fix %08lx, val %08x\n", __func__, (intptr_t)buf, val);
+  max = min = 0;
+  switch (fixP->fx_r_type)
+    {
+    case BFD_RELOC_16:
+      for (int i = 0; i < 4; i++) {
+	  op <<= 8;
+	  op |= *buf++;
+	}
+	op |= (val & 0xffff) << 6;
+	printf("%s op is now %08x\n", __func__, op);
+       *buf++ = op >> 24;
+       *buf++ = op >> 16;
+       *buf++ = op >> 8;
+       *buf++ = op >> 0;
+      break;
+
+    default:
+      abort ();
+    }
+
+  if (max != 0 && (val < min || val > max))
+    as_bad_where (fixP->fx_file, fixP->fx_line, _("offset out of range"));
+
+  if (fixP->fx_addsy == NULL && fixP->fx_pcrel == 0)
+    fixP->fx_done = 1;
 }
 
 /* Put number into target byte order (big endian).  */

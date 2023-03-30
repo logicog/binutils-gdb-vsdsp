@@ -1,4 +1,4 @@
-/* tc-ggx.h -- Header file for tc-ggx.c.
+/* tc-ggx.h -- Header file for tc-vsdsp.c.
 
    Copyright 2008 Free Software Foundation, Inc.
 

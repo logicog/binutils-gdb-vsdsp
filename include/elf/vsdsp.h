@@ -25,6 +25,7 @@
 /* Relocation types.  */
 START_RELOC_NUMBERS (elf_vsdsp_reloc_type)
   RELOC_NUMBER (R_VSDSP_NONE, 0)
-END_RELOC_NUMBERS (R_VSDSP_max)
+  RELOC_NUMBER (R_VSDSP_DIR16, 1)
+END_RELOC_NUMBERS (R_VSDSP_MAX)
 
 #endif
