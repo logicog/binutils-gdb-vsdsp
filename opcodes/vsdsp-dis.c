@@ -300,10 +300,10 @@ two_op_arithmetic(char *op, uint32_t c)
 	uint8_t r, R, A;
 // 	printf("in %s\n", __func__);
 
-	r = (c >> 20) & 0xf;
 	R = (c >> 24) & 0xf;
+	r = (c >> 20) & 0xf;
 	A = (c >> 17) & 0x7;
-//	printf("%s r %x, R %x, A %x\n", __func__, r, R, A);
+//	printf("%s opcode %08x r %x, R %x, A %x\n", __func__, c, r, R, A);
 	
 	// Is this a 40 bit operation, because one op is 40 bits?
 	if (r > 9 || R > 9) // Registers P, A, B, C, D are 40 bits

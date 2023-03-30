@@ -114,7 +114,7 @@ parse_alu_reg (char **sptr)
     {
       int ans = strcmp (buf, alu_op[l]);
 
-      if (ans) {
+      if (!ans) {
 	  *sptr = s;
 	  return l;
       }
